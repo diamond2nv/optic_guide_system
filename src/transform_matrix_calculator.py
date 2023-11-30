@@ -79,8 +79,7 @@ class TransformMatrixCalculator():
 
             if ids is not None and len(ids) > 0:
                 # Get the transformation matrix of the first detected ArUco marker
-                rvec, tvec, _ = aruco.estimatePoseSingleMarkers(
-                    corners, 0.045, intr_matrix, intr_coeffs)
+                
                 rotation_matrix, _ = cv2.Rodrigues(rvec)
                 transform_matrix = np.eye(4)
                 transform_matrix[:3, :3] = rotation_matrix
@@ -97,14 +96,14 @@ class TransformMatrixCalculator():
                     print("transform_matrix_5:",transform_matrix)
                     
                 else:
-                    print("aruco_dict.markerSize is not 4 or 5")
+                    
                     return
             else:
                 print("no change")
 
         except:
             pass
-        return transform_matrix
+        return 
 
     def show_detected_marker(self,aruco_dict):
         """
@@ -121,6 +120,7 @@ class TransformMatrixCalculator():
             rgb, aruco_dict, parameters=self.parameters)
         aruco.drawDetectedMarkers(rgb, corners)
         cv2.imshow('rgb',rgb)
+        
     
     def get_transformed_needle_points(self,aruco_dict):
         """
@@ -138,9 +138,7 @@ class TransformMatrixCalculator():
         if aruco_dict.markerSize == 5:
             transformation_matrix = self.transform_matrix_5
             
-        else:
-            print("aruco_dict.markerSize is not 4 or 5")
-            return
+
             
         
         # Define the start point and direction of the line segment
