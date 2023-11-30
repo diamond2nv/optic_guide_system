@@ -58,7 +58,7 @@ class TransformMatrixCalculator():
         self.intr_matrix = intr_matrix
         return color_image, depth_image, depth_image_8bit, intr_matrix, np.array(intr.coeffs)
 
-    def calculate_transform_matrix(self,aruco_dict):
+    def calculate_transform_matrix(self,aruco_dict,markerLength):
         """
         Calculates the transformation matrix based on the detected ArUco markers.
 
@@ -72,7 +72,7 @@ class TransformMatrixCalculator():
         corners, ids, rejected_img_points = aruco.detectMarkers(
             rgb, aruco_dict, parameters=self.parameters)
         rvec, tvec, markerPoints = aruco.estimatePoseSingleMarkers(
-            corners, 0.045, intr_matrix, intr_coeffs)
+            corners, markerLength, intr_matrix, intr_coeffs)
         try:
             aruco.drawDetectedMarkers(rgb, corners)
             cv2.drawFrameAxes(rgb, intr_matrix, intr_coeffs, rvec, tvec, 0.05)
@@ -84,6 +84,10 @@ class TransformMatrixCalculator():
                 transform_matrix = np.eye(4)
                 transform_matrix[:3, :3] = rotation_matrix
                 transform_matrix[:3, 3] = tvec[0]
+                             
+                #使用transform_matrix计算marker和相机的距离
+                distance = np.sqrt(np.sum(np.square(tvec[0])))
+                print("distance:",distance)
                 
                 
                 if aruco_dict.markerSize == 4:
@@ -175,8 +179,8 @@ if __name__ == "__main__":
         # cv2.imshow('rgb',rgb)
         # cv2.waitKey(1)
         
-        transform_matrix_calculator.calculate_transform_matrix(aruco_dict_4)
-        transform_matrix_calculator.calculate_transform_matrix(aruco_dict_5)
+        transform_matrix_calculator.calculate_transform_matrix(aruco_dict_4,0.003)
+        transform_matrix_calculator.calculate_transform_matrix(aruco_dict_5,0.008)
         
 
          
