@@ -8,7 +8,7 @@ CAMERA_RESOLUTION_X = 1280
 CAMERA_RESOLUTION_Y = 720
 CAMERA_FRAME_RATE=30
 
-SHOW_IMAGE=False
+SHOW_IMAGE=True
 NEEDLE_MARKER_LENGTH=0.004
 REF_MARKER_LENGTH=0.008
 NEEDLE_LENGTH=0.012185
@@ -121,26 +121,30 @@ class TransformMatrixCalculator():
             pass
         return None
         
-    def get_transformed_needle_points(self,aruco_dict,start_point=np.array([0, 0, -0.001, 1]),end_point = np.array([0, NEEDLE_LENGTH, -0.001, 1])):
+    def get_transformed_needle_points(self, aruco_dict, start_point=np.array([0, 0, -0.001, 1]), end_point=np.array([0, NEEDLE_LENGTH, -0.001, 1])):
         """
         Calculates the transformed needle points based on the transformation matrix.
 
         Args:
             aruco_dict (cv2.aruco.Dictionary): ArUco dictionary used for marker detection.
+            start_point (np.array, optional): Starting point of the needle in 3D space. Defaults to [0, 0, -0.001, 1].
+            end_point (np.array, optional): Ending point of the needle in 3D space. Defaults to [0, NEEDLE_LENGTH, -0.001, 1].
 
         Returns:
-            None
+            tuple: A tuple containing the following elements:
+                - start_point_img (np.array): Starting point of the needle in image coordinates.
+                - end_point_img (np.array): Ending point of the needle in image coordinates.
+                - start_point_cam (np.array): Starting point of the needle in camera coordinates.
+                - end_point_cam (np.array): Ending point of the needle in camera coordinates.
         """
-   
+       
         if self.transform_matrix_4 is not None and aruco_dict.markerSize == 4:
             transformation_matrix = self.transform_matrix_4
         elif self.transform_matrix_5 is not None and aruco_dict.markerSize == 5:
             transformation_matrix = self.transform_matrix_5
         else:
-            return None, None,None,None
-        
+            return None, None, None, None
 
-        
         # Transform the points to the camera frame
         start_point_cam = np.dot(transformation_matrix, start_point)
         end_point_cam = np.dot(transformation_matrix, end_point)
@@ -154,20 +158,20 @@ class TransformMatrixCalculator():
         start_point_img = start_point_img[:2]
         end_point_img = end_point_img[:2]
         
-        #强制将start_point_img和end_point_img转换为整数
+        # Force start_point_img and end_point_img to be integers
         start_point_img = start_point_img.astype(np.int32)
         end_point_img = end_point_img.astype(np.int32)
         
-        #对start_point_img和end_point_img取绝对值
+        # Take absolute values of start_point_img and end_point_img
         start_point_img = np.abs(start_point_img)
         end_point_img = np.abs(end_point_img)
         
-        #当self.start_point_img和self.end_point_img不同时，更新self.start_point_img和self.end_point_img
+        # Update self.start_point_img and self.end_point_img if they are different from start_point_img and end_point_img
         if (self.start_point_img != start_point_img).any() or (self.end_point_img != end_point_img).any():
             self.start_point_img = start_point_img
             self.end_point_img = end_point_img
         
-        return start_point_img, end_point_img,start_point_cam[:3],end_point_cam[:3]
+        return start_point_img, end_point_img, start_point_cam[:3], end_point_cam[:3]
     
 def transform_matrix_accuracy_test():
     aruco_dict_4 = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
@@ -224,9 +228,9 @@ def main():
         
         
 if __name__ == "__main__":
-    transform_matrix_accuracy_test()
+    # transform_matrix_accuracy_test()
     
-    # main()
+    main()
     
         
         
