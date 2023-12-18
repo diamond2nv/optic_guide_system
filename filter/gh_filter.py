@@ -33,6 +33,12 @@ def tranform_matrix2quaternion(transform_matrix):
     quaternion = r3.as_quat()
     return quaternion
 
+def transform_matrixarray2quaternionarray(transform_matrix_array):
+    quaternion_array = np.zeros((transform_matrix_array.shape[0], 4))
+    for i in range(transform_matrix_array.shape[0]):
+        quaternion_array[i] = tranform_matrix2quaternion(transform_matrix_array[i])
+    return quaternion_array
+
 def quaternion2transform_matrix(quaternion):
     # 将四元数转换为旋转平移矩阵
     r3 = R.from_quat(quaternion)
@@ -54,5 +60,14 @@ class gh_filter():
         self.velocity = self.velocity + self.h * (residual) / self.dt
         x_updated = x_est + self.g * residual
         return x_updated
+
+def main():
+    collect_data_path = './data/transform_matrix_1.npy'
+    transform_matrix_array=np.load(collect_data_path)
+    quaternionarray=transform_matrixarray2quaternionarray(transform_matrix_array)
+    return
+
+main()
+    
 
     
