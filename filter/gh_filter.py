@@ -7,7 +7,7 @@ import sys
 import numpy as np
 import math
 
-from utlis import load_transform_matrix, transform_matrix_constraint
+from utlis import transform_matrix_constraint,tranform_matrix2quaternion,quaternion2transform_matrix,quaternion2rotation_matrix
 
 class GHFilter:
     def __init__(self, g, h, x_shape_numpy, dt=1):
@@ -81,14 +81,26 @@ class GHFilter:
     
 def main():
     collect_data_path = './data/transform_matrix_8.npy'
-    transform_matrix_array=np.load(collect_data_path)
-    x_shape=np.zeros((4,4))
-    tm_norm_gh_filter=GHFilter(0.5,0.5,x_shape)
+    transform_matrix_array = np.load(collect_data_path)
+    t_shape = np.zeros((4, 4))
+    t_gh_filter = GHFilter(0.5, 0.5, t_shape)
+    
+    qxyz_shape = np.zeros(7)
+    qxyz_gh_filter = GHFilter(0.5, 0.5, qxyz_shape)
+    
     for i in range(1000):
-        tmx=transform_matrix_array[i,:,:]
-        x_updated,x_predicted=tm_norm_gh_filter.filter(tmx)
-        x_normed=transform_matrix_constraint(x_updated)
-        tm_norm_gh_filter.x_updated=x_normed
+        t = transform_matrix_array[i,:,:]
+        
+        t_updated, t_predicted = t_gh_filter.filter(t)
+        t_normed = transform_matrix_constraint(t_updated)
+        t_gh_filter.x_updated = t_normed
+        
+        q = tranform_matrix2quaternion(t)
+        xyz = t[0:3,3]
+        qxyz = np.hstack((q, xyz))
+        qxyz_updated, qxyz_predicted = qxyz_gh_filter.filter(qxyz)
+        t_updated_from_qxyz=quaternion2transform_matrix(qxyz_updated)
+        print(t_updated_from_qxyz)
     return
         
     

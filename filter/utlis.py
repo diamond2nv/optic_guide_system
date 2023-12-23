@@ -33,7 +33,7 @@ def transform_matrixarray2quaternionarray(transform_matrix_array):
         quaternion_array[i] = tranform_matrix2quaternion(transform_matrix_array[i])
     return quaternion_array
 
-def quaternion2transform_matrix(quaternion):
+def quaternion2rotation_matrix(quaternion):
     # 将四元数转换为旋转平移矩阵
     if np.all(quaternion == 0):
         return np.zeros((3,3))
@@ -41,6 +41,13 @@ def quaternion2transform_matrix(quaternion):
     r3 = R.from_quat(quaternion)
     rotation_matrix = r3.as_matrix()
     return rotation_matrix
+
+def quaternion2transform_matrix(qxyz):
+    if np.all(qxyz == 0):
+        return np.zeros((4,4))
+    t_from_qxyz = np.hstack((quaternion2rotation_matrix(qxyz[0:4]),np.reshape(qxyz[4:7],(3,1))))
+    t_from_qxyz=np.vstack((t_from_qxyz,np.array([0,0,0,1])))
+    return t_from_qxyz
 
 def transform_matrix_constraint(transform_matrix):
     if(np.all(transform_matrix== 0)) :
@@ -52,3 +59,4 @@ def transform_matrix_constraint(transform_matrix):
         x=x/np.linalg.norm(x)
         normed_transform_matrix[0:3,i]=x
     return normed_transform_matrix
+
