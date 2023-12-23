@@ -35,6 +35,9 @@ def transform_matrixarray2quaternionarray(transform_matrix_array):
 
 def quaternion2transform_matrix(quaternion):
     # 将四元数转换为旋转平移矩阵
+    if np.all(quaternion == 0):
+        return np.zeros((3,3))
+    
     r3 = R.from_quat(quaternion)
     rotation_matrix = r3.as_matrix()
     return rotation_matrix

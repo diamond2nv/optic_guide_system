@@ -58,15 +58,19 @@ def gh_test(g=0.5,h=0.5):
     return x_origin,x_predicted_array, x_updated_array
 
 def quanternion_test():
-    tmxa,sta,eta=load(2)
+    tmxa,sta,eta=load(12)
     qa=transform_matrixarray2quaternionarray(tmxa)
-    print(qa.shape)
-    gh_shape=np.zeros((4,1))
+    gh_shape=np.zeros(4)
     gh_filter=GHFilter(0.5,0.5,gh_shape)
+    quanternion_updated_array=np.zeros((1000,4))
+    r_updated_array=np.zeros((1000,3,3))
     for i in range(1000):
         q=qa[i,:]
-        x_updated,x_predicted=gh_filter.filter(q)
-    return
+        x_updated,x_predicted=gh_filter.filter(q) 
+        quanternion_updated_array[i,:]=np.squeeze(x_updated)
+        tmx_updated=quaternion2transform_matrix(x_updated)
+        r_updated_array[i,:,:]=tmx_updated
+    return quanternion_updated_array,r_updated_array
 
 quanternion_test()
     

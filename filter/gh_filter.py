@@ -37,7 +37,8 @@ class GHFilter:
         Returns:
             The predicted state vector.
         """
-        x_est = x + self.velocity * self.dt
+        
+        x_est = x + np.squeeze(self.velocity * self.dt)
         return x_est
 
     def update(self, x_measurement, x_est):
@@ -52,7 +53,7 @@ class GHFilter:
             The updated state vector.
         """
         residual = x_measurement - x_est
-        self.velocity = self.velocity + self.h * (residual) / self.dt
+        self.velocity = np.squeeze(self.velocity) + self.h * (residual) / self.dt
         x_updated = x_est + self.g * residual
         return x_updated
 
@@ -75,19 +76,20 @@ class GHFilter:
                 self.x_updated = self.x_predicted
             elif not(np.isnan(x_measurement).all()):
                 self.x_updated = self.update(x_measurement, self.x_predicted)
-        return self.x_updated, self.x_predicted
+        return np.squeeze(self.x_updated), np.squeeze(self.x_predicted)
     
     
 def main():
     collect_data_path = './data/transform_matrix_8.npy'
     transform_matrix_array=np.load(collect_data_path)
     x_shape=np.zeros((4,4))
-    gh_filter=GHFilter(0.5,0.5,x_shape)
+    tm_norm_gh_filter=GHFilter(0.5,0.5,x_shape)
     for i in range(1000):
         tmx=transform_matrix_array[i,:,:]
-        x_updated,x_predicted=gh_filter.filter(tmx)
+        x_updated,x_predicted=tm_norm_gh_filter.filter(tmx)
         x_normed=transform_matrix_constraint(x_updated)
-        gh_filter.x_updated=x_normed
+        tm_norm_gh_filter.x_updated=x_normed
+    return
         
     
 
