@@ -67,13 +67,13 @@ class GHFilter:
             The updated state vector and the predicted state vector.
         """
         if np.all(self.x_updated== 0) :
-            if not(math.isnan(x_measurement[1, 1])):
+            if not(np.isnan(x_measurement).all()):
                 self.x_updated = x_measurement
         elif not(np.all(self.x_updated== 0)):
             self.x_predicted = self.predict(self.x_updated)
-            if math.isnan(x_measurement[1, 1]):
+            if np.isnan(x_measurement).all():
                 self.x_updated = self.x_predicted
-            elif not(math.isnan(x_measurement[1, 1])):
+            elif not(np.isnan(x_measurement).all()):
                 self.x_updated = self.update(x_measurement, self.x_predicted)
         return self.x_updated, self.x_predicted
     

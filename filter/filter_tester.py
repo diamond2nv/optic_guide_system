@@ -3,7 +3,9 @@ import math
 from scipy.spatial.transform import Rotation as R
 from gh_filter import GHFilter
 import matplotlib.pyplot as plt
-from utlis import load_transform_matrix, transform_matrix_constraint,load
+from utlis import load,transform_matrixarray2quaternionarray,quaternion2transform_matrix
+
+from gh_filter import GHFilter
 def save_plot():
     for i in range(0,10,1):
         for j in range(0,10,1):
@@ -54,6 +56,20 @@ def gh_test(g=0.5,h=0.5):
         
     x_origin=tma_1   
     return x_origin,x_predicted_array, x_updated_array
+
+def quanternion_test():
+    tmxa,sta,eta=load(2)
+    qa=transform_matrixarray2quaternionarray(tmxa)
+    print(qa.shape)
+    gh_shape=np.zeros((4,1))
+    gh_filter=GHFilter(0.5,0.5,gh_shape)
+    for i in range(1000):
+        q=qa[i,:]
+        x_updated,x_predicted=gh_filter.filter(q)
+    return
+
+quanternion_test()
+    
 
 
 
