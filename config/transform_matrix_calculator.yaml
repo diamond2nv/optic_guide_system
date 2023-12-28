@@ -1,12 +1,28 @@
+show_print : true
+
+mode: 
+  online : true
+  gh_filter : true
 camera:
   resolution_x : 1280
   resolution_y : 720
   frame_rate : 30
+needle_marker:
+  shape : 4 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
+  side_length : 0.004
+  
+ref_marker:
+  shape : 4 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
+  side_length : 0.008
+gh_filter:
+  g : 0.5
+  h : 0.5
+  data_shape : 7
+  max_unmeausure_num : 30
+  dt : 1
 needle:
-  marker_side_length : 0.004
   length : 0.012185
-ref:
-  marker_side_length : 0.008
-  depth_to_needle : 0.001082-0.000202/2
+  depth_to_needle : 0.001082
+  radius : 0.000101
 
 
