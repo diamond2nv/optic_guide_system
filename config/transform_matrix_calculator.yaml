@@ -1,0 +1,12 @@
+camera:
+  resolution_x : 1280
+  resolution_y : 720
+  frame_rate : 30
+needle:
+  marker_side_length : 0.004
+  length : 0.012185
+ref:
+  marker_side_length : 0.008
+  depth_to_needle : 0.001082-0.000202/2
+
+

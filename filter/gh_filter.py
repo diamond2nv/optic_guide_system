@@ -92,7 +92,7 @@ def main():
     t_gh_filter = GHFilter(0.5, 0.5, t_shape)
     
     qxyz_shape = np.zeros(7)
-    qxyz_gh_filter = GHFilter(0.5, 0.5, qxyz_shape)
+    qxyz_gh_filter = GHFilter(0.6, 0.7, qxyz_shape)
     
     for i in range(1000):
         t = transform_matrix_array[i,:,:]

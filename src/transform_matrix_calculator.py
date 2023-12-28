@@ -4,6 +4,7 @@ import cv2
 import cv2.aruco as aruco
 import time
 import sys
+import matplotlib.pyplot as plt
 sys.path.append('/home/siyuan/Desktop/CODE/single_camera_marker_calculator/filter')
 from gh_filter import GHFilter
 from utlis import transform_matrix_constraint,tranform_matrix2quaternion,quaternion2transform_matrix,quaternion2rotation_matrix
@@ -12,11 +13,11 @@ CAMERA_RESOLUTION_X = 1280
 CAMERA_RESOLUTION_Y = 720
 CAMERA_FRAME_RATE=30
 
-SHOW_IMAGE=False
-NEEDLE_MARKER_LENGTH=0.004
-REF_MARKER_LENGTH=0.008
-NEEDLE_LENGTH=0.012185
-MARKER_TO_NEEDLE_DEPTH=0.001082-0.000202/2
+SHOW_IMAGE=True
+NEEDLE_MARKER_LENGTH=0.039
+REF_MARKER_LENGTH=0.039
+NEEDLE_LENGTH=0.12185
+MARKER_TO_NEEDLE_DEPTH=0.01082-0.00202/2
 
 
 class TransformMatrixCalculator():
@@ -240,12 +241,53 @@ def main():
             
             cv2.imshow('rgb',rgb)
             cv2.waitKey(1)
+            
+def save_diff(g,h):
+    aruco_dict_5 = aruco.getPredefinedDictionary(aruco.DICT_5X5_50)
+    transform_matrix_calculator = TransformMatrixCalculator()
+    qxyz_shape = np.zeros(7)
+    qxyz_gh_filter = GHFilter(g, h, qxyz_shape)
+    no_fil_array=np.zeros((1000,4,4))
+    gh_fil_array=np.zeros((1000,4,4))
+    for i in range(1000):
+        start = time.time()
+        transform_matrix_ref=transform_matrix_calculator.calculate_transform_matrix(aruco_dict_5,REF_MARKER_LENGTH)
+        t=transform_matrix_ref
+        if t is None:
+            t = np.full((4, 4), np.nan)
+        q = tranform_matrix2quaternion(t)
+        xyz = t[0:3,3]
+        qxyz = np.hstack((q, xyz))
+        qxyz_updated, qxyz_predicted = qxyz_gh_filter.filter(qxyz)
+        no_fil_array[i,:,:]=t
+        gh_fil_array[i,:,:]=quaternion2transform_matrix(qxyz_updated)
+        
+    plt.figure()
+    plt.plot(no_fil_array[:1000,2, 3], label='x_origin[:, 0]')
+    plt.plot(gh_fil_array[:1000,2,3], label='x_updated_array[:, 0]')
+    # 添加图例
+    plt.legend()
+
+    # 设置坐标轴标签
+    plt.xlabel('Index')
+    plt.ylabel('Value')
+    
+    save_path='./figure/online_g'+str(g)+"_h"+str(h)+'.png'
+
+    plt.savefig(save_path)
         
         
 if __name__ == "__main__":
     # transform_matrix_accuracy_test()
+    # for i in range(0,10,1):
+    #     for j in range(0,10,1):
+            
+    #         ii=i/10
+    #         jj=j/10
+    #         print(ii,jj)
+    #         save_diff(ii,jj)
+    save_diff(0.05,0.0)
     
-    main()
     
         
         
