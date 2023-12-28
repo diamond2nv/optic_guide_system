@@ -22,6 +22,9 @@ def load(index):
 
 def tranform_matrix2quaternion(transform_matrix):
     # 将旋转平移矩阵转换为四元数
+    
+    if transform_matrix is None:
+        return np.array([np.nan, np.nan, np.nan, np.nan])
     rotation_matrix = transform_matrix[0:3, 0:3]
     r3 = R.from_matrix(rotation_matrix)
     quaternion = r3.as_quat()
@@ -43,8 +46,6 @@ def quaternion2rotation_matrix(quaternion):
     return rotation_matrix
 
 def quaternion2transform_matrix(qxyz):
-    if np.all(qxyz == 0):
-        return np.zeros((4,4))
     t_from_qxyz = np.hstack((quaternion2rotation_matrix(qxyz[0:4]),np.reshape(qxyz[4:7],(3,1))))
     t_from_qxyz=np.vstack((t_from_qxyz,np.array([0,0,0,1])))
     return t_from_qxyz

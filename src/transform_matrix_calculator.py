@@ -3,12 +3,16 @@ import numpy as np
 import cv2
 import cv2.aruco as aruco
 import time
+import sys
+sys.path.append('/home/siyuan/Desktop/CODE/single_camera_marker_calculator/filter')
+from gh_filter import GHFilter
+from utlis import transform_matrix_constraint,tranform_matrix2quaternion,quaternion2transform_matrix,quaternion2rotation_matrix
 
 CAMERA_RESOLUTION_X = 1280
 CAMERA_RESOLUTION_Y = 720
 CAMERA_FRAME_RATE=30
 
-SHOW_IMAGE=True
+SHOW_IMAGE=False
 NEEDLE_MARKER_LENGTH=0.004
 REF_MARKER_LENGTH=0.008
 NEEDLE_LENGTH=0.012185
@@ -196,10 +200,21 @@ def main():
     aruco_dict_4 = aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
     aruco_dict_5 = aruco.getPredefinedDictionary(aruco.DICT_5X5_50)
     transform_matrix_calculator = TransformMatrixCalculator()
+    qxyz_shape = np.zeros(7)
+    qxyz_gh_filter = GHFilter(0.5, 0.5, qxyz_shape)
     while(1):
         start = time.time()
         transform_matrix_ref=transform_matrix_calculator.calculate_transform_matrix(aruco_dict_5,REF_MARKER_LENGTH)
+        t=transform_matrix_ref
+        if t is None:
+            t = np.full((4, 4), np.nan)
+        q = tranform_matrix2quaternion(t)
+        xyz = t[0:3,3]
+        qxyz = np.hstack((q, xyz))
+        qxyz_updated, qxyz_predicted = qxyz_gh_filter.filter(qxyz)
+        t_updated_from_qxyz=quaternion2transform_matrix(qxyz_updated)
         print("transform_matrix_ref:",transform_matrix_ref)
+        print("ghfilter:",t_updated_from_qxyz)
         transform_matrix_needle=transform_matrix_calculator.calculate_transform_matrix(aruco_dict_4,NEEDLE_MARKER_LENGTH)
         needle_start_point_3d=np.array([0, 0, -MARKER_TO_NEEDLE_DEPTH, 1])
         needle_end_point_3d=np.array([0, NEEDLE_LENGTH, -MARKER_TO_NEEDLE_DEPTH, 1])

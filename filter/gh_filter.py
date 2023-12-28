@@ -10,7 +10,7 @@ import math
 from utlis import transform_matrix_constraint,tranform_matrix2quaternion,quaternion2transform_matrix,quaternion2rotation_matrix
 
 class GHFilter:
-    def __init__(self, g, h, x_shape_numpy, dt=1):
+    def __init__(self, g, h, x_shape_numpy,max_unmeausure_num=30, dt=1):
         """
         Initializes the GHFilter class.
 
@@ -26,6 +26,8 @@ class GHFilter:
         self.dt = dt
         self.x_predicted = np.zeros(x_shape_numpy.shape)
         self.x_updated = np.zeros(x_shape_numpy.shape)
+        self.max_unmeausure_num=max_unmeausure_num
+        self.unmeausure_num=0
 
     def predict(self, x):
         """
@@ -74,8 +76,12 @@ class GHFilter:
             self.x_predicted = self.predict(self.x_updated)
             if np.isnan(x_measurement).all():
                 self.x_updated = self.x_predicted
+                self.unmeausure_num+=1
+                if self.unmeausure_num>self.max_unmeausure_num:
+                    self.x_updated=np.zeros(self.x_updated.shape)
             elif not(np.isnan(x_measurement).all()):
                 self.x_updated = self.update(x_measurement, self.x_predicted)
+                self.unmeausure_num=0
         return np.squeeze(self.x_updated), np.squeeze(self.x_predicted)
     
     
