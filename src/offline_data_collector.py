@@ -1,8 +1,13 @@
+
+#此部分代码过于杂乱，现已停止维护
+
 from transform_matrix_calculator import TransformMatrixCalculator
 import cv2.aruco as aruco
 import numpy as np
 import time
 import sys
+
+
 
 CAMERA_RESOLUTION_X = 1280
 CAMERA_RESOLUTION_Y = 720
