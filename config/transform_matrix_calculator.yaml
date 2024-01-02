@@ -2,7 +2,7 @@ show_print : true
 
 mode: 
   online : true
-  gh_filter : true
+  filter : 0 # 0: no filter 1:gh_filter 2:ukf_filter
 camera:
   resolution_x : 1280
   resolution_y : 720
@@ -18,7 +18,7 @@ gh_filter:
   g : 0.5
   h : 0.5
   data_shape : 7
-  max_unmeausure_num : 30
+  max_unmeansure_frames : 30
   dt : 1
 needle:
   length : 0.012185

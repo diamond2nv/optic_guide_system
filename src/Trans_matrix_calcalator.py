@@ -1,6 +1,7 @@
 from Config_loader import Config_loader
 from Camera import Camera
 from Marker import Marker
+from GH_filter import GH_filter
  
 class Transform_Matrix_Calculator():
  
@@ -13,6 +14,7 @@ class Transform_Matrix_Calculator():
         if params['mode']['online']: 
             #self.camera_setup(params)
             self.marker_setup(params)
+            self.filter_setup(params)
         elif not(params['mode']['online']):
             pass
 
@@ -36,7 +38,20 @@ class Transform_Matrix_Calculator():
             pass  
         if params['show_print']:
             print("Marker(s) init success")
-        
+            
+    def filter_setup(self,params):
+        if params['mode']['filter']:
+            if params['mode']['filter']==1:
+                self.filter=GH_filter(params)
+            elif params['mode']['filter']==2:
+                pass
+            else:
+                if params['show_print']:
+                    print("Filter init failed, filter mode is wrong")
+            if params['show_print']:
+                print("Filter init success")
+        else:
+            pass
     def calc_c2m(self,params):
         if params['needle_marker']['shape']:
             self.camera.trans_matrix_calc(self.needle_marker)
@@ -53,4 +68,20 @@ class Transform_Matrix_Calculator():
                 print(self.ref_marker.matrix)
         else:
             pass 
+        
+    def filt(self,params):
+        if params['mode']['filter']:
+            if params['mode']['filter']==1:
+                if params['needle_marker']['shape']:
+                    self.filter.filt_marker_qxyz(self.needle_marker)
+                if params['show_print']:
+                    print("needle_marker's filtered transform matrix:")
+                    print(self.needle_marker.matrix)
+            elif params['mode']['filter']==2:
+                pass
+            else:
+                if params['show_print']:
+                    print("Filter failed, filter mode is wrong")
+        else:
+            pass
         
