@@ -6,13 +6,17 @@ class Marker():
     def __init__(self,params):
         if params['shape'] ==4:
             self.shape= aruco.getPredefinedDictionary(aruco.DICT_4X4_50)
+            
         elif params['shape'] ==5:
             self.shape= aruco.getPredefinedDictionary(aruco.DICT_5X5_50)
+            
         else:
             pass
         self.matrix=np.full((4, 4), np.nan)
         self.qxyz=np.full((7), np.nan)
-        self.side_length=params['side_length']
+        self.v_qxyz=np.full((7), np.nan)
+        self.acc_qxyz=np.full((7), np.nan)
+        self.length=params['side_length']
         
     def qxyz_update_from_matrix(self):
         rotation_matrix = self.matrix[0:3, 0:3]

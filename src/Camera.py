@@ -37,7 +37,7 @@ class Camera():
         self.color_image=color_image
         self.depth_image=depth_image
         self.depth_image_8bit=depth_image_8bit
-        self.intr_matrix=intr_matrix
+        self.intr_coeffs=np.array(intr.coeffs)
         return color_image, depth_image, depth_image_8bit, intr_matrix, np.array(intr.coeffs)
     
     def trans_matrix_calc(self,marker):
@@ -46,17 +46,29 @@ class Camera():
             self.color_image, marker.shape, parameters=self.parameters)
         rvec, tvec, markerPoints = aruco.estimatePoseSingleMarkers(
             corners, marker.length, self.intr_matrix, self.intr_coeffs)
-        if ids is not None and len(ids) > 0:
-            rotation_matrix, _ = cv2.Rodrigues(rvec)
-            transform_matrix = np.eye(4)
-            transform_matrix[:3, :3] = rotation_matrix
-            transform_matrix[:3, 3] = tvec[0]
-            marker.matrix=transform_matrix
-            marker.qxyz_update_from_matrix()
-            
-        else:
-            marker.matrix=np.full((4, 4), np.nan)
-            marker.qxyz=np.full((7), np.nan)
-        return marker.matrix, marker.qxyz
+        try:
+            if ids is not None and len(ids) > 0:
+                rotation_matrix, _ = cv2.Rodrigues(rvec)
+                transform_matrix = np.eye(4)
+                transform_matrix[:3, :3] = rotation_matrix
+                transform_matrix[:3, 3] = tvec[0]
+                
+                old_qxyz=marker.qxyz
+                old_v_qxyz=marker.v_qxyz
+                old_acc_qxyz=marker.acc_qxyz
+                
+                marker.matrix=transform_matrix
+                marker.qxyz_update_from_matrix()
+                
+                marker.v_qxyz=marker.qxyz-old_qxyz
+                marker.acc_qxyz=marker.v_qxyz-old_v_qxyz
+                
+            else:
+                marker.matrix=np.full((4, 4), np.nan)
+                marker.qxyz=np.full((7), np.nan)
+            return marker.matrix, marker.qxyz
+        except:
+            pass
+
         
     

@@ -1,5 +1,4 @@
-from Config_loader import load_config
-
-
-config=load_config('gh_filter.yaml')
-print(config)
+import ukfm
+import numpy as np
+import matplotlib
+ukfm.utils.set_matplotlib_config()

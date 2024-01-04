@@ -2,17 +2,17 @@ show_print : true
 
 mode: 
   online : true
-  filter : 0 # 0: no filter 1:gh_filter 2:ukf_filter
+  filter : 1 # 0: no filter 1:gh_filter 2:ukf_filter
 camera:
   resolution_x : 1280
   resolution_y : 720
   frame_rate : 30
 needle_marker:
-  shape : 4 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
+  shape : 5 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
   side_length : 0.004
   
 ref_marker:
-  shape : 4 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
+  shape : 0 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
   side_length : 0.008
 gh_filter:
   g : 0.5
@@ -20,6 +20,13 @@ gh_filter:
   data_shape : 7
   max_unmeansure_frames : 30
   dt : 1
+ukf_filter:
+  marker:
+    q_shape : 4
+    xyz_shape : 3
+    v_xyz_shape : 3
+    accu_q_shape : 4
+    acc_xyz_shape : 3
 needle:
   length : 0.012185
   depth_to_needle : 0.001082

@@ -3,7 +3,7 @@ from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
  
-class Transform_Matrix_Calculator():
+class OGS():
  
     def __init__(self):
         config_loader=Config_loader('transform_matrix_calculator.yaml')
@@ -12,7 +12,7 @@ class Transform_Matrix_Calculator():
         if params['show_print']:
             print(params)
         if params['mode']['online']: 
-            #self.camera_setup(params)
+            self.camera_setup(params)
             self.marker_setup(params)
             self.filter_setup(params)
         elif not(params['mode']['online']):
@@ -85,3 +85,9 @@ class Transform_Matrix_Calculator():
         else:
             pass
         
+        
+if __name__ == "__main__":
+    ogs=OGS()
+    while True:
+        ogs.calc_c2m(ogs.params)
+        ogs.filt(ogs.params)

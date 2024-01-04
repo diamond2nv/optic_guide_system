@@ -2,17 +2,17 @@ import numpy as np
 
 class GH_filter():
     def __init__(self,params):
-        self.data_shape=params['data_shape']
+        self.data_shape=params['gh_filter']['data_shape']
         
-        self.h=params['h']
-        self.g=params['g']
-        self.dt=params['dt']
+        self.h=params['gh_filter']['h']
+        self.g=params['gh_filter']['g']
+        self.dt=params['gh_filter']['dt']
         
         self.velocity=np.zeros(self.data_shape)
         self.x_predicted=np.zeros(self.data_shape)
         self.x_updated=np.zeros(self.data_shape)
         
-        self.max_unmeansure_frames=params['max_unmeansure_frames']
+        self.max_unmeansure_frames=params['gh_filter']['max_unmeansure_frames']
         self.current_unmeansure_frames=0
         
     def predict(self,x):
