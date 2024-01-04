@@ -1,4 +1,4 @@
-name: depth_estimate
+name: optic_guide_system
 channels:
   - conda-forge
 dependencies:
@@ -255,4 +255,4 @@ dependencies:
       - werkzeug==3.0.1
       - widgetsnbextension==4.0.9
       - zipp==3.17.0
-prefix: /home/siyuan/mambaforge/envs/depth_estimate
+prefix: /home/siyuan/mambaforge/envs/optic_guide_system

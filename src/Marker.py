@@ -17,6 +17,8 @@ class Marker():
         self.v_qxyz=np.full((7), np.nan)
         self.acc_qxyz=np.full((7), np.nan)
         self.length=params['side_length']
+        self.filted_qxyz=np.full((7), np.nan)
+        self.filted_matrix=np.full((4, 4), np.nan)
         
     def qxyz_update_from_matrix(self):
         rotation_matrix = self.matrix[0:3, 0:3]
@@ -27,10 +29,14 @@ class Marker():
         return self.qxyz
         
     def matrix_update_from_qxyz(self):
-        r3 = R.from_quat(self.qxyz[0:4])
-        rotation_matrix = r3.as_matrix()
-        t_from_qxyz = np.hstack((rotation_matrix,np.reshape(self.qxyz[4:7],(3,1))))
-        t_from_qxyz=np.vstack((t_from_qxyz,np.array([0,0,0,1])))
-        self.matrix = t_from_qxyz
-        return self.matrix
+        if np.isnan(self.qxyz).all():
+            self.matrix=np.full((4, 4), np.nan)
+            return self.matrix
+        else:     
+            r3 = R.from_quat(self.qxyz[0:4])
+            rotation_matrix = r3.as_matrix()
+            t_from_qxyz = np.hstack((rotation_matrix,np.reshape(self.qxyz[4:7],(3,1))))
+            t_from_qxyz=np.vstack((t_from_qxyz,np.array([0,0,0,1])))
+            self.matrix = t_from_qxyz
+            return self.matrix
         

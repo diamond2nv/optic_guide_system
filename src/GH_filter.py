@@ -43,5 +43,5 @@ class GH_filter():
     
     def filt_marker_qxyz(self,marker):
         self.filted_qxyz,self.predicted_qxyz=self.filt(marker.qxyz)
-        marker.qxyz=self.filted_qxyz
+        marker.filted_qxyz=self.filted_qxyz
         marker.matrix_update_from_qxyz()
