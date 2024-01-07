@@ -1,6 +1,8 @@
 from Config_loader import Config_loader
 import numpy as np
 import ukfm
+import os
+import matplotlib.pyplot as plt
 
 def block_diag(*arrs):
     """
@@ -123,4 +125,110 @@ class UKF_Filter():
                 red_phi_inv=self.MODEL.phi_inv, red_idxs=red_idxs,
                 up_phi=self.MODEL.up_phi, up_idxs=up_idxs)
         
-    
+def test():
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    collect_data_path = _BASE_DIR+str("/data/transform_matrix_22.npy")
+    tmx=np.load(collect_data_path)
+    MODEL = ukfm.IMUGNSS
+    N = tmx.shape[0]
+    # observation frequency (Hz)
+    GNSS_freq = 1
+
+    imu_std = np.array([0.0001,     # gyro (rad/s)
+                        0.0001,     # accelerometer (m/s^2)
+                        0.1, # gyro bias (rad/s^2)
+                        0.1])  # accelerometer bias (m/s^3)
+    # GNSS noise standard deviation (m)
+    GNSS_std = 0.005
+    Q = block_diag(imu_std[0]**2*np.eye(3), imu_std[1]**2*np.eye(3),
+               imu_std[2]**2*np.eye(3), imu_std[3]**2*np.eye(3))
+    # measurement noise covariance matrix
+    R = GNSS_std**2 * np.eye(3)
+
+    ################################################################################
+    # We use the UKF that is able to infer Jacobian to speed up the update step, see
+    # the 2D SLAM example.
+
+    # sigma point parameters
+    alpha = np.array([1e-3, 1e-3, 1e-3, 1e-3, 1e-3])
+    # for propagation we need the all state
+    red_idxs = np.arange(15)  # indices corresponding to the full state in P
+    # for update we need only the state corresponding to the position
+    up_idxs = np.array([6, 7, 8])
+    P0 = block_diag(0.01*np.eye(3), 1*np.eye(3), 1*np.eye(3),
+                0.001*np.eye(3), 0.001*np.eye(3))
+    # initial state
+    state0 = MODEL.STATE(
+        Rot=np.eye(3),
+        v=np.zeros(3),
+        p=np.zeros(3),
+        b_gyro=np.zeros(3),
+        b_acc=np.zeros(3))
+    ukf = ukfm.JUKF(state0=state0, P0=P0, f=MODEL.f, h=MODEL.h, Q=Q[:6, :6],
+                phi=MODEL.phi, alpha=alpha, red_phi=MODEL.phi,
+                red_phi_inv=MODEL.phi_inv, red_idxs=red_idxs,
+                up_phi=MODEL.up_phi, up_idxs=up_idxs)
+    # set variables for recording estimates along the full trajectory
+    ukf_states = [state0]
+    ukf_Ps = np.zeros((N, 15, 15))
+    ukf_Ps[0] = P0
+    # the part of the Jacobian that is already known.
+    G_const = np.zeros((15, 6))
+    G_const[9:] = np.eye(6)
+    one_hot_tmx=np.zeros(N)
+    for i in range(1, N):
+        if not np.isnan(tmx[i,:,:]).all():
+            one_hot_tmx[i]=1
+            
+    omegas= []
+    omegas_rand=np.array([0.2,0.2,0.2])
+    for i in range(1, N):
+        #生成随机的gyro和acc
+        gyro = np.random.randn(3) * omegas_rand
+        acc = np.random.randn(3) * omegas_rand
+        omegas.append(MODEL.INPUT(gyro=gyro, acc=acc))
+    k=1 
+    ys_array = []   
+    ukf_p_array=[]
+    for n in range(1, 1000):
+        dt=1
+        ukf.state_propagation(omegas[n-1], dt)
+        ukf.F_num(omegas[n-1], dt)
+        # we assert the reduced noise covariance for computing Jacobian.
+        ukf.Q = Q[:6, :6]
+        ukf.G_num(omegas[n-1], dt)
+        # concatenate Jacobian
+        ukf.G = np.hstack((ukf.G, G_const*dt))
+        # we assert the full noise covariance for uncertainty propagation.
+        ukf.Q = Q
+        ukf.cov_propagation()
+        # update
+        
+        if one_hot_tmx[n] == 1:
+            
+            ukf.update(tmx[n,0:3,3], R)
+            ys_array.append(tmx[n,0:3,3])
+            k = k + 1
+        # save estimates
+        ukf_p_array.append(ukf.state.p)
+        ukf_states.append(ukf.state)
+        print("tmx",tmx[n,0:3,3])
+        print("ukf.state",ukf.state.p)
+        ukf_Ps[n] = ukf.P
+        print(n)
+    ys_array = np.array(ys_array)    
+    ys_array.reshape(-1,3)
+    ukf_p_array=np.array(ukf_p_array)
+    ukf_p_array.reshape(-1,3)
+
+    plt.figure()
+    plt.plot(ys_array[:,2],'r')
+    plt.plot(ukf_p_array[:,2],'b')
+    plt.savefig('./test.png')
+
+    # MODEL.plot_results(ukf_states, ys_array)
+    pass
+
+
+
+test()

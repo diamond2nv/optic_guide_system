@@ -35,6 +35,4 @@ python环境详见[environment.yml](./environment.yml)
 
 ## install
 
-conda create -n ogs python=3.10
-
-conda activate ogs
+conda env create -f environment.yaml
