@@ -3,6 +3,8 @@ import numpy as np
 import ukfm
 import os
 import matplotlib.pyplot as plt
+from scipy.spatial.transform import Rotation
+from ogsimu import OGSIMU
 
 def block_diag(*arrs):
     """
@@ -143,7 +145,7 @@ def test():
     Q = block_diag(imu_std[0]**2*np.eye(3), imu_std[1]**2*np.eye(3),
                imu_std[2]**2*np.eye(3), imu_std[3]**2*np.eye(3))
     # measurement noise covariance matrix
-    R = GNSS_std**2 * np.eye(3)
+    R = GNSS_std**2 * np.eye(6)
 
     ################################################################################
     # We use the UKF that is able to infer Jacobian to speed up the update step, see
@@ -154,7 +156,7 @@ def test():
     # for propagation we need the all state
     red_idxs = np.arange(15)  # indices corresponding to the full state in P
     # for update we need only the state corresponding to the position
-    up_idxs = np.array([6, 7, 8])
+    up_idxs = np.array([0,1,2,6, 7, 8])
     P0 = block_diag(0.01*np.eye(3), 1*np.eye(3), 1*np.eye(3),
                 0.001*np.eye(3), 0.001*np.eye(3))
     # initial state
@@ -164,10 +166,10 @@ def test():
         p=np.zeros(3),
         b_gyro=np.zeros(3),
         b_acc=np.zeros(3))
-    ukf = ukfm.JUKF(state0=state0, P0=P0, f=MODEL.f, h=MODEL.h, Q=Q[:6, :6],
+    ukf = ukfm.JUKF(state0=state0, P0=P0, f=MODEL.f, h=MODEL.h2, Q=Q[:6, :6],
                 phi=MODEL.phi, alpha=alpha, red_phi=MODEL.phi,
                 red_phi_inv=MODEL.phi_inv, red_idxs=red_idxs,
-                up_phi=MODEL.up_phi, up_idxs=up_idxs)
+                up_phi=MODEL.up_phi2, up_idxs=up_idxs)
     # set variables for recording estimates along the full trajectory
     ukf_states = [state0]
     ukf_Ps = np.zeros((N, 15, 15))
@@ -205,8 +207,13 @@ def test():
         # update
         
         if one_hot_tmx[n] == 1:
-            
-            ukf.update(tmx[n,0:3,3], R)
+            rot = tmx[n,0:3,0:3]
+            p=tmx[n,0:3,3]
+            r3 = Rotation.from_matrix(rot)
+            quaternion = r3.as_quat()
+            #将quaternion和y拼接在一起
+            y = np.hstack((p,quaternion))
+            ukf.update2(rot,p, R)
             ys_array.append(tmx[n,0:3,3])
             k = k + 1
         # save estimates
@@ -229,6 +236,105 @@ def test():
     # MODEL.plot_results(ukf_states, ys_array)
     pass
 
+def main():
+    _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    collect_data_path = _BASE_DIR+str("/data/transform_matrix_12.npy")
+    tmx=np.load(collect_data_path)
+    MODEL = OGSIMU
+    N = tmx.shape[0]
+    imu_std = np.array([10,     # gyro (rad/s)
+                        10,     # accelerometer (m/s^2)
+                        10, # gyro bias (rad/s^2)
+                        10])  # accelerometer bias (m/s^3)
+    # GNSS noise standard deviation (m)
+    GNSS_std = 0.1
+    Q = block_diag(imu_std[0]**2*np.eye(3), imu_std[1]**2*np.eye(3),
+               imu_std[2]**2*np.eye(3), imu_std[3]**2*np.eye(3))
+    # measurement noise covariance matrix
+    R = GNSS_std**2 * np.eye(7)
+    alpha = np.array([1e-3, 1e-3, 1e-3, 1e-3, 1e-3])
+    # for propagation we need the all state
+    red_idxs = np.arange(16)  # indices corresponding to the full state in P
+    # for update we need only the state corresponding to the position
+    up_idxs = np.array([0,1,2,3,7, 8, 9])
+    P0 = block_diag(0.01*np.eye(4), 1*np.eye(3), 1*np.eye(3),
+                0.001*np.eye(3), 0.001*np.eye(3))
+    # initial state
+    state0 = MODEL.STATE(
+        quaternion=np.array([1,0,0,0]),
+        v=np.zeros(3),
+        p=np.zeros(3),
+        b_gyro=np.zeros(3),
+        b_acc=np.zeros(3))
+    ukf = ukfm.JUKF(state0=state0, P0=P0, f=MODEL.f, h=MODEL.h, Q=Q[:6, :6],
+                phi=MODEL.phi, alpha=alpha, red_phi=MODEL.phi,
+                red_phi_inv=MODEL.phi_inv, red_idxs=red_idxs,
+                up_phi=MODEL.up_phi, up_idxs=up_idxs)
+    ukf_states = [state0]
+    ukf_Ps = np.zeros((N, 16, 16))
+    ukf_Ps[0] = P0
+    # the part of the Jacobian that is already known.
+    G_const = np.zeros((16, 6))
+    G_const[10:] = np.eye(6)
+    one_hot_tmx=np.zeros(N)
+    for i in range(1, N):
+        if not np.isnan(tmx[i,:,:]).all():
+            one_hot_tmx[i]=1
+            
+    omegas= []
+    omegas_rand=np.array([0.00001,0.0001,0.0001])
+    for i in range(1, N):
+        #生成随机的gyro和acc
+        gyro = np.random.randn(3) * omegas_rand
+        acc = np.random.randn(3) * omegas_rand
+        # gyro = np.array([0,0,0])
+        # acc = np.array([0,0,0])
+        omegas.append(MODEL.INPUT(gyro=gyro, acc=acc))
+    k=1 
+    ys_array = []   
+    ukf_p_array=[]
+    for n in range(1, 1000):
+        dt=1
+        ukf.state_propagation(omegas[n-1], dt)
+        ukf.F_num(omegas[n-1], dt)
+        # we assert the reduced noise covariance for computing Jacobian.
+        ukf.Q = Q[:6, :6]
+        ukf.G_num(omegas[n-1], dt)
+        # concatenate Jacobian
+        ukf.G = np.hstack((ukf.G, G_const*dt))
+        # we assert the full noise covariance for uncertainty propagation.
+        ukf.Q = Q
+        ukf.cov_propagation()
+        # update
+        
+        if one_hot_tmx[n] == 1:
+            rot = tmx[n,0:3,0:3]
+            p=tmx[n,0:3,3]
+            r3 = Rotation.from_matrix(rot)
+            quaternion = r3.as_quat()
+            #将quaternion和y拼接在一起
+            y = np.hstack((quaternion,p))
+            ukf.update(y, R)
+            ys_array.append(tmx[n,0:3,3])
+            k = k + 1
+        # save estimates
+        ukf_p_array.append(ukf.state.p)
+        ukf_states.append(ukf.state)
+        print("tmx",tmx[n,0:3,3])
+        print("ukf.state",ukf.state.p)
+        ukf_Ps[n] = ukf.P
+        print(n)
+    ys_array = np.array(ys_array)    
+    ys_array.reshape(-1,3)
+    ukf_p_array=np.array(ukf_p_array)
+    ukf_p_array.reshape(-1,3)
 
+    plt.figure()
+    plt.plot(ys_array[100:200,2],'r')
+    plt.plot(ukf_p_array[100:200,2],'b')
+    plt.savefig('./test.png')
 
-test()
+    # MODEL.plot_results(ukf_states, ys_array)
+    pass
+
+main()

@@ -123,7 +123,19 @@ class IMUGNSS:
         """
         y = state.p
         return y
+    @classmethod
+    def h2(cls, state):
+        """ Observation function.
 
+        .. math::
+
+            h\\left(\\boldsymbol{\\chi}\\right)  = \\mathbf{p}
+
+        :var state: state :math:`\\boldsymbol{\\chi}`.
+        """
+        y_R=state.Rot
+        y_p = state.p
+        return y_R,y_p
     @classmethod
     def phi(cls, state, xi):
         """Retraction.
@@ -201,6 +213,16 @@ class IMUGNSS:
         )
         return new_state
 
+    @classmethod
+    def up_phi2(cls, state, xi):
+        new_state = cls.STATE(
+            Rot=SO3.exp(xi[:3]).dot(state.Rot),
+            v=state.v,
+            p=xi[3:6] + state.p,
+            b_gyro=state.b_gyro,
+            b_acc=state.b_acc
+        )
+        return new_state
     @classmethod
     def left_phi(cls, state, xi):
         """Retraction.

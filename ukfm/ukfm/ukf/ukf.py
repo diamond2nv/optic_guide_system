@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.linalg import block_diag
+from ukfm import SO3, SE3
 
 class UKF:
     """The Unscented Kalman Filter on (parallelizable) Manifolds.
@@ -574,3 +575,54 @@ class JUKF:
         self.H = np.zeros((0, self.P.shape[0]))
         self.r = np.zeros(0)
         self.R = np.zeros((0, 0))
+        
+    def update2(self,y_R,y_p, R):
+        self.H_num2(y_R,y_p, self.up_idxs, R)
+        self.state_update()
+        
+    def H_num2(self, y_R,y_p, idxs, R):
+        P = self.P[np.ix_(idxs, idxs)]
+        # set variable size
+        d = P.shape[0]
+        l = y_R.shape[0]+y_p.shape[0]
+        R_d=y_R.shape[0]
+        p_d=y_p.shape[0]
+
+        P = P + self.TOL*np.eye(d)
+
+        # set sigma points
+        w_u = self.weights.up_d
+        xis = w_u.sqrt_d_lambda * np.linalg.cholesky(P).T
+
+        # compute measurement sigma_points
+
+        y_mat_R = np.zeros((2*d,R_d,R_d))
+        y_mat_p = np.zeros((2*d, p_d))
+
+        hat_y_R,hat_y_p = self.h(self.state)
+        for j in range(d):
+            s_j_p = self.up_phi(self.state, xis[j])
+            s_j_m = self.up_phi(self.state, -xis[j])
+            y_jpR,y_jpp=self.h(s_j_p)
+            y_jmR,y_jmp=self.h(s_j_m)
+            y_mat_R[j] = y_jpR
+            y_mat_R[d + j] = y_jmR
+            y_mat_p[j] = y_jpp
+            y_mat_p[d + j] = y_jmp
+            
+
+
+        # measurement mean
+        y_bar_R = w_u.wm * hat_y_R + w_u.wj * np.sum(y_mat_R, 0)
+        y_bar_p = w_u.wm * hat_y_p + w_u.wj * np.sum(y_mat_p, 0)
+        # prune mean before computing covariance
+        y_mat_R = y_mat_R - y_bar_R
+        y_mat_p = y_mat_p - y_bar_p
+        a=np.vstack([xis, -xis])
+        
+    
+        
+    
+    
+    
+    
