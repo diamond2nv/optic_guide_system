@@ -236,16 +236,16 @@ def test():
     # MODEL.plot_results(ukf_states, ys_array)
     pass
 
-def main():
+def main(gyro_std=1,acc_std=1,gyro_bias_std=1,acc_bias_std=1,GNSS_std=0):
     _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     collect_data_path = _BASE_DIR+str("/data/transform_matrix_12.npy")
     tmx=np.load(collect_data_path)
     MODEL = OGSIMU
     N = tmx.shape[0]
-    imu_std = np.array([10,     # gyro (rad/s)
-                        10,     # accelerometer (m/s^2)
-                        10, # gyro bias (rad/s^2)
-                        10])  # accelerometer bias (m/s^3)
+    imu_std = np.array([gyro_std,     # gyro (rad/s)
+                        acc_std,     # accelerometer (m/s^2)
+                        gyro_bias_std, # gyro bias (rad/s^2)
+                        acc_bias_std])  # accelerometer bias (m/s^3)
     # GNSS noise standard deviation (m)
     GNSS_std = 0.1
     Q = block_diag(imu_std[0]**2*np.eye(3), imu_std[1]**2*np.eye(3),
@@ -332,9 +332,20 @@ def main():
     plt.figure()
     plt.plot(ys_array[100:200,2],'r')
     plt.plot(ukf_p_array[100:200,2],'b')
-    plt.savefig('./test.png')
-
+    savepath=_BASE_DIR+"/experiment/ukf/"+"g"+str(gyro_std)+"a"+str(acc_std)+"gb"+str(gyro_bias_std)+"ab"+str(acc_bias_std)+".png"
+    plt.savefig(savepath)
     # MODEL.plot_results(ukf_states, ys_array)
     pass
 
-main()
+
+
+# for i in range(6):
+#     for j in range(6):
+#         for k in range(6):
+#             for w in range(6):
+#                 main(0.001*(10**i),0.001*(10**j),0.001*(10**k),0.001*(10**w),0.001)
+
+for i in range (6):
+    for j in range(6):
+                    
+        main(0.001*(10**i),0.001*(10**i),0.001*(10**j),0.001*(10**j),100)          

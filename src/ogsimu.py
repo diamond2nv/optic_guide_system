@@ -3,7 +3,7 @@ from ukfm import SO3
 from scipy.spatial.transform import Rotation as R
 
 class OGSIMU:
-    g = np.array([0, 0,-9.82])
+    g = np.array([0, 0,0])
     class STATE:
         
         def __init__(self, quaternion, v, p, b_gyro, b_acc):
