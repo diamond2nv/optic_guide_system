@@ -247,7 +247,7 @@ def main(gyro_std=1,acc_std=1,gyro_bias_std=1,acc_bias_std=1,GNSS_std=0):
                         gyro_bias_std, # gyro bias (rad/s^2)
                         acc_bias_std])  # accelerometer bias (m/s^3)
     # GNSS noise standard deviation (m)
-    GNSS_std = 0.1
+    GNSS_std = GNSS_std
     Q = block_diag(imu_std[0]**2*np.eye(3), imu_std[1]**2*np.eye(3),
                imu_std[2]**2*np.eye(3), imu_std[3]**2*np.eye(3))
     # measurement noise covariance matrix
@@ -332,7 +332,7 @@ def main(gyro_std=1,acc_std=1,gyro_bias_std=1,acc_bias_std=1,GNSS_std=0):
     plt.figure()
     plt.plot(ys_array[100:200,2],'r')
     plt.plot(ukf_p_array[100:200,2],'b')
-    savepath=_BASE_DIR+"/experiment/ukf/"+"g"+str(gyro_std)+"a"+str(acc_std)+"gb"+str(gyro_bias_std)+"ab"+str(acc_bias_std)+".png"
+    savepath=_BASE_DIR+"/experiment/ukf/"+"g"+str(gyro_std)+"a"+str(acc_std)+"gb"+str(gyro_bias_std)+"ab"+str(acc_bias_std)+"gnss"+str(GNSS_std)+".png"
     plt.savefig(savepath)
     # MODEL.plot_results(ukf_states, ys_array)
     pass
