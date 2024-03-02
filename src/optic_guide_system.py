@@ -2,11 +2,12 @@ from Config_loader import Config_loader
 from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
+from Imu import Imu
  
 class OGS():
  
     def __init__(self):
-        config_loader=Config_loader('transform_matrix_calculator.yaml')
+        config_loader=Config_loader('optic_guide_system.yaml')
         params=config_loader.get_params()
         self.params=params
         if params['show_print']:

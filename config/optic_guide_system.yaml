@@ -7,6 +7,10 @@ camera:
   resolution_x : 1280
   resolution_y : 720
   frame_rate : 30
+imu:
+  bps:921600
+  port: '/dev/ttyUSB0'
+  timeout: 20
 needle_marker:
   shape : 5 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
   side_length : 0.004
