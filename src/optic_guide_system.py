@@ -3,7 +3,7 @@ from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
 from Imu import Imu
-
+import threading
 
 class OGS():
 
@@ -22,6 +22,7 @@ class OGS():
             self.camera_setup(params)
             self.marker_setup(params)
             self.filter_setup(params)
+            self.imu_setup(params)
         elif not (params['mode']['online']):
             pass
 
@@ -61,28 +62,49 @@ class OGS():
             pass
 
     def imu_setup(self, params):
-        if params['mode']['online']:
+        if params['mode']['imu']:
             self.imu = Imu(params)
             if params['show_print']:
                 print("IMU init success")
         else:
             pass
-    def calc_c2m(self, params):
-        if params['needle_marker']['shape']:
-            self.camera.trans_matrix_calc(self.needle_marker)
-            if params['show_print']:
-                print("needle_marker's transform matrix:")
-                print(self.needle_marker.matrix)
-        else:
-            pass
 
-        if params['ref_marker']['shape']:
-            self.camera.trans_matrix_calc(self.ref_marker)
+    def calc_c2m(self, params):
+        try:
+            if params['needle_marker']['shape']:
+                self.camera.trans_matrix_calc(self.needle_marker)
+                if params['show_print']:
+                    print("needle_marker's transform matrix:")
+                    print(self.needle_marker.matrix)
+            else:
+                pass
+
+            if params['ref_marker']['shape']:
+                self.camera.trans_matrix_calc(self.ref_marker)
+                if params['show_print']:
+                    print("ref_marker's transform matrix:")
+                    print(self.ref_marker.matrix)
+            else:
+                pass
+        except:
             if params['show_print']:
-                print("ref_marker's transform matrix:")
-                print(self.ref_marker.matrix)
-        else:
-            pass
+                print("calc_c2m failed")
+        print("calc_c2m finish")
+
+    def read_IMU(self, params):
+        imu_thread = threading.Thread(target=self.imu.run)
+        imu_thread.start()
+
+    def read_IMU_and_filt(self, params):
+        while True:
+            self.imu.run()
+            print("imu finish")
+            self.filt(params)
+            print("filt finish")
+
+    def start(self):
+        thread = threading.Thread(target=self.read_IMU_and_filt, args=(self.params,))
+        thread.start()
 
     def filt(self, params):
         if params['mode']['filter']:
@@ -103,6 +125,11 @@ class OGS():
 
 if __name__ == "__main__":
     ogs = OGS()
-    while True:
-        ogs.calc_c2m(ogs.params)
-        ogs.filt(ogs.params)
+    if ogs.imu is None:
+        while True:
+            ogs.calc_c2m(ogs.params)
+            ogs.filt(ogs.params)
+    else:
+        while True:
+            ogs.calc_c2m(ogs.params)
+            ogs.start()

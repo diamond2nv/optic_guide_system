@@ -1,8 +1,9 @@
-show_print : true
+show_print : false
 
 mode: 
   online : true
   filter : 1 # 0: no filter 1:gh_filter 2:ukf_filter
+  imu : true
 camera:
   resolution_x : 1280
   resolution_y : 720
@@ -11,6 +12,7 @@ imu:
   bps: 921600
   port: '/dev/ttyUSB0'
   timeout: 20
+  show_print : false
 needle_marker:
   shape : 5 # 0:do not detect 4:DICT_4X4_50 5:DICT_5X5_50
   side_length : 0.004

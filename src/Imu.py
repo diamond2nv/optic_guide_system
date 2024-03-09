@@ -46,12 +46,12 @@ class Imu:
     #     self.port=params['imu']['port']
     #     self.bps=params['imu']['bps']
     #     self.timeout=params['imu']['timeout']
-    def __init__(self) -> None:
-        self.serial_ = None
-        self.port = '/dev/ttyUSB0'
-        self.bps = 921600
+    def __init__(self, params) -> None:
+        self.port = params['imu']['port']
+        self.bps = params['imu']['bps']
+        self.timeout = params['imu']['timeout']
         self.timeout = 20
-        self.showprint = True
+        self.showprint = params['imu']['show_print']
         self.gyroscope = {"x": 0, "y": 0, "z": 0}
         self.accelerometer = {"x": 0, "y": 0, "z": 0}
         self.Magnetometer = {"x": 0, "y": 0, "z": 0}
@@ -97,6 +97,7 @@ class Imu:
 
     def receive_data(self):
         self.open_port()
+        lock=threading.Lock()
         # 尝试打开串口
 
         # 循环读取数据
@@ -112,17 +113,38 @@ class Imu:
                 if self.showprint:
                     print('done')
                 break
-            check_head = self.serial_.read().hex()
+            try:
+                lock.acquire()
+                check_head = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
             # 校验帧头
             if check_head != FRAME_HEAD:
                 continue
-            head_type = self.serial_.read().hex()
+            try:
+                lock.acquire()
+                head_type = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
             # 校验数据类型
             if (head_type != TYPE_IMU and head_type != TYPE_AHRS and head_type != TYPE_INSGPS and
                     head_type != TYPE_GEODETIC_POS and head_type != 0x50 and head_type != TYPE_GROUND and
                     head_type != TYPE_SYS_STATE and head_type != TYPE_BODY_ACCELERATION and head_type != TYPE_ACCELERATION):
                 continue
-            check_len = self.serial_.read().hex()
+            try:
+                lock.acquire()
+                check_len = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
             # 校验数据类型的长度
             if head_type == TYPE_IMU and check_len != IMU_LEN:
                 continue
@@ -145,14 +167,52 @@ class Imu:
                 if self.showprint:
                     print("check head type " + str(TYPE_ACCELERATION) + " failed;" + " ckeck_LEN:" + str(check_len))
                 continue
-            check_sn = self.serial_.read().hex()
-            head_crc8 = self.serial_.read().hex()
-            crc16_H_s = self.serial_.read().hex()
-            crc16_L_s = self.serial_.read().hex()
+            try:
+                lock.acquire()
+                check_sn = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
+
+            try:
+                lock.acquire()
+                head_crc8 = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
+
+            try:
+                lock.acquire()
+                crc16_H_s = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
+
+            try:
+                lock.acquire()
+                crc16_L_s = self.serial_.read().hex()
+                lock.release()
+            except serial.serialutil.SerialException as e:
+                if self.showprint:
+                    print(f"Error reading from serial port: {e}")
+                exit(1)
 
             # 读取并解析IMU数据
             if head_type == TYPE_IMU:
-                data_s = self.serial_.read(int(IMU_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(IMU_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 IMU_DATA = struct.unpack('12f ii', data_s[0:56])
                 self.gyroscope["x"] = IMU_DATA[0]
                 self.gyroscope["y"] = IMU_DATA[1]
@@ -181,7 +241,14 @@ class Imu:
                     print("Timestamp(us) : " + str(IMU_DATA[12]))
             # 读取并解析AHRS数据
             elif head_type == TYPE_AHRS:
-                data_s = self.serial_.read(int(AHRS_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(AHRS_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 AHRS_DATA = struct.unpack('10f ii', data_s[0:48])
                 self.ahrs["RollSpeed"] = AHRS_DATA[0]
                 self.ahrs["PitchSpeed"] = AHRS_DATA[1]
@@ -209,7 +276,14 @@ class Imu:
                     print("Timestamp(us) : " + str(AHRS_DATA[10]))
             # 读取并解析INSGPS数据
             elif head_type == TYPE_INSGPS:
-                data_s = self.serial_.read(int(INSGPS_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(INSGPS_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 INSGPS_DATA = struct.unpack('16f ii', data_s[0:72])
                 if self.showprint:
                     print(INSGPS_DATA)
@@ -232,25 +306,53 @@ class Imu:
                     print("Timestamp:(us)" + str(INSGPS_DATA[16]))
             # 读取并解析GPS数据
             elif head_type == TYPE_GEODETIC_POS:
-                data_s = self.serial_.read(int(GEODETIC_POS_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(GEODETIC_POS_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 if self.showprint:
                     print(" Latitude:(rad)" + str(struct.unpack('d', data_s[0:8])[0]))
                     print("Longitude:(rad)" + str(struct.unpack('d', data_s[8:16])[0]))
                     print("Height:(m)" + str(struct.unpack('d', data_s[16:24])[0]))
             elif head_type == TYPE_SYS_STATE:
-                data_s = self.serial_.read(int(SYS_STATE_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(SYS_STATE_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 if self.showprint:
                     print("Unix_time:" + str(struct.unpack('i', data_s[4:8])[0]))
                     print("Microseconds:" + str(struct.unpack('i', data_s[8:12])[0]))
                     print(" System_status:" + str(struct.unpack('d', data_s[0:2])[0]))
                     print("System_Z(m/s^2): " + str(struct.unpack('f', data_s[56:60])[0]))
             elif head_type == TYPE_BODY_ACCELERATION:
-                data_s = self.serial_.read(int(BODY_ACCELERATION_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(BODY_ACCELERATION_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 if self.showprint:
                     print(" System_status:" + str(struct.unpack('d', data_s[0:2])[0]))
                     print("BodyAcceleration_Z(m/s^2): " + str(struct.unpack('f', data_s[8:12])[0]))
             elif head_type == TYPE_ACCELERATION:
-                data_s = self.serial_.read(int(ACCELERATION_LEN, 16))
+                try:
+                    lock.acquire()
+                    data_s = self.serial_.read(int(ACCELERATION_LEN, 16))
+                    lock.release()
+                except serial.serialutil.SerialException as e:
+                    if self.showprint:
+                        print(f"Error reading from serial port: {e}")
+                    exit(1)
                 if self.showprint:
                     print(" System_status:" + str(struct.unpack('d', data_s[0:2])[0]))
                     print("Acceleration_Z(m/s^2): " + str(struct.unpack('f', data_s[8:12])[0]))
