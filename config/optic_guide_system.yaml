@@ -8,7 +8,7 @@ camera:
   resolution_y : 720
   frame_rate : 30
 imu:
-  bps:921600
+  bps: 921600
   port: '/dev/ttyUSB0'
   timeout: 20
 needle_marker:

@@ -3,48 +3,54 @@ from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
 from Imu import Imu
- 
+
+
 class OGS():
- 
+
     def __init__(self):
-        config_loader=Config_loader('optic_guide_system.yaml')
-        params=config_loader.get_params()
-        self.params=params
+        self.filter = None
+        self.ref_marker = None
+        self.camera = None
+        self.needle_marker = None
+        self.imu = None
+        config_loader = Config_loader('optic_guide_system.yaml')
+        params = config_loader.get_params()
+        self.params = params
         if params['show_print']:
             print(params)
-        if params['mode']['online']: 
+        if params['mode']['online']:
             self.camera_setup(params)
             self.marker_setup(params)
             self.filter_setup(params)
-        elif not(params['mode']['online']):
+        elif not (params['mode']['online']):
             pass
 
     def camera_setup(self, params):
-        self.camera=Camera(params)
+        self.camera = Camera(params)
         if params['show_print']:
             print("Camera init success")
-        
-    def marker_setup(self,params):
+
+    def marker_setup(self, params):
         if params['needle_marker']['shape']:
-            self.needle_marker=Marker(params['needle_marker'])
+            self.needle_marker = Marker(params['needle_marker'])
             if params['show_print']:
                 print("Marker : needle_marker init success")
         else:
             pass
         if params['ref_marker']['shape']:
-            self.ref_marker=Marker(params['ref_marker'])
+            self.ref_marker = Marker(params['ref_marker'])
             if params['show_print']:
                 print("Marker : ref_marker init success")
         else:
-            pass  
+            pass
         if params['show_print']:
             print("Marker(s) init success")
-            
-    def filter_setup(self,params):
+
+    def filter_setup(self, params):
         if params['mode']['filter']:
-            if params['mode']['filter']==1:
-                self.filter=GH_filter(params)
-            elif params['mode']['filter']==2:
+            if params['mode']['filter'] == 1:
+                self.filter = GH_filter(params)
+            elif params['mode']['filter'] == 2:
                 pass
             else:
                 if params['show_print']:
@@ -53,42 +59,50 @@ class OGS():
                 print("Filter init success")
         else:
             pass
-    def calc_c2m(self,params):
+
+    def imu_setup(self, params):
+        if params['mode']['online']:
+            self.imu = Imu(params)
+            if params['show_print']:
+                print("IMU init success")
+        else:
+            pass
+    def calc_c2m(self, params):
         if params['needle_marker']['shape']:
             self.camera.trans_matrix_calc(self.needle_marker)
-            if params['show_print'] :
+            if params['show_print']:
                 print("needle_marker's transform matrix:")
                 print(self.needle_marker.matrix)
         else:
             pass
-        
+
         if params['ref_marker']['shape']:
             self.camera.trans_matrix_calc(self.ref_marker)
-            if params['show_print'] :
+            if params['show_print']:
                 print("ref_marker's transform matrix:")
                 print(self.ref_marker.matrix)
         else:
-            pass 
-        
-    def filt(self,params):
+            pass
+
+    def filt(self, params):
         if params['mode']['filter']:
-            if params['mode']['filter']==1:
+            if params['mode']['filter'] == 1:
                 if params['needle_marker']['shape']:
                     self.filter.filt_marker_qxyz(self.needle_marker)
                 if params['show_print']:
                     print("needle_marker's filtered transform matrix:")
                     print(self.needle_marker.matrix)
-            elif params['mode']['filter']==2:
+            elif params['mode']['filter'] == 2:
                 pass
             else:
                 if params['show_print']:
                     print("Filter failed, filter mode is wrong")
         else:
             pass
-        
-        
+
+
 if __name__ == "__main__":
-    ogs=OGS()
+    ogs = OGS()
     while True:
         ogs.calc_c2m(ogs.params)
         ogs.filt(ogs.params)

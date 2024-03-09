@@ -19,7 +19,6 @@ import platform
 
 from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 
-PI = 3.1415926
 FRAME_HEAD = str('fc')
 FRAME_END = str('fd')
 TYPE_IMU = str('40')
@@ -35,28 +34,30 @@ AHRS_LEN = str('30')  # //48
 INSGPS_LEN = str('48')  # //72
 GEODETIC_POS_LEN = str('20')  # //32
 SYS_STATE_LEN = str('64')  # // 100
-BODY_ACCELERATION_LEN = str('10') #// 16
+BODY_ACCELERATION_LEN = str('10')  # // 16
 ACCELERATION_LEN = str('0c')  # 12
 PI = 3.141592653589793
 DEG_TO_RAD = 0.017453292519943295
 isrun = True
 
-class Imu():
+
+class Imu:
     # def __init__(self,params):
     #     self.port=params['imu']['port']
     #     self.bps=params['imu']['bps']
     #     self.timeout=params['imu']['timeout']
     def __init__(self) -> None:
-        self.port='/dev/ttyUSB0'
-        self.bps=921600
-        self.timeout=20
-        self.showprint=True
-        self.gyroscope={"x":0,"y":0,"z":0}
-        self.accelerometer={"x":0,"y":0,"z":0}
-        self.Magnetometer={"x":0,"y":0,"z":0}
-        self.ahrs={}
-        self.timestamp=0
-        
+        self.serial_ = None
+        self.port = '/dev/ttyUSB0'
+        self.bps = 921600
+        self.timeout = 20
+        self.showprint = True
+        self.gyroscope = {"x": 0, "y": 0, "z": 0}
+        self.accelerometer = {"x": 0, "y": 0, "z": 0}
+        self.Magnetometer = {"x": 0, "y": 0, "z": 0}
+        self.ahrs = {}
+        self.timestamp = 0
+
     def UsePlatform(self):
         sys_str = platform.system()
         if self.showprint:
@@ -67,7 +68,7 @@ class Imu():
             else:
                 print("Other System tasks: %s" % sys_str)
         return sys_str
-    
+
     def find_serial(self):
         port_list = list(serial.tools.list_ports.comports())
         for port in port_list:
@@ -75,34 +76,32 @@ class Imu():
                 return True
         return False
 
-
     def open_port(self):
         if self.find_serial():
             if self.showprint:
                 print("find this port : " + self.port)
         else:
-            if self.showprint:   
+            if self.showprint:
                 print("error:  unable to find this port : " + self.port)
             exit(1)
         try:
             self.serial_ = serial.Serial(port=self.port, baudrate=self.bps, bytesize=EIGHTBITS, parity=PARITY_NONE,
-                                    stopbits=STOPBITS_ONE,
-                                    timeout=self.timeout)
+                                         stopbits=STOPBITS_ONE,
+                                         timeout=self.timeout)
             if self.showprint:
                 print("baud rates = " + str(self.serial_.baudrate))
         except:
             if self.showprint:
                 print("error:  unable to open port .")
             exit(1)
-        
-            
+
     def receive_data(self):
         self.open_port()
         # 尝试打开串口
-        
+
         # 循环读取数据
-        
-        while self.serial_.isOpen()  :
+
+        while self.serial_.isOpen():
             # rbdata = ser.readline()
             # # rbdata = ser.read_all()
             #
@@ -121,7 +120,7 @@ class Imu():
             # 校验数据类型
             if (head_type != TYPE_IMU and head_type != TYPE_AHRS and head_type != TYPE_INSGPS and
                     head_type != TYPE_GEODETIC_POS and head_type != 0x50 and head_type != TYPE_GROUND and
-                    head_type != TYPE_SYS_STATE and head_type!=TYPE_BODY_ACCELERATION and head_type!=TYPE_ACCELERATION):
+                    head_type != TYPE_SYS_STATE and head_type != TYPE_BODY_ACCELERATION and head_type != TYPE_ACCELERATION):
                 continue
             check_len = self.serial_.read().hex()
             # 校验数据类型的长度
@@ -139,11 +138,12 @@ class Imu():
                 continue
             elif head_type == TYPE_BODY_ACCELERATION and check_len != BODY_ACCELERATION_LEN:
                 if self.showprint:
-                    print("check head type "+str(TYPE_BODY_ACCELERATION)+" failed;"+" check_LEN:"+str(check_len))
+                    print(
+                        "check head type " + str(TYPE_BODY_ACCELERATION) + " failed;" + " check_LEN:" + str(check_len))
                 continue
             elif head_type == TYPE_ACCELERATION and check_len != ACCELERATION_LEN:
                 if self.showprint:
-                    print("check head type "+str(TYPE_ACCELERATION)+" failed;"+" ckeck_LEN:"+str(check_len))
+                    print("check head type " + str(TYPE_ACCELERATION) + " failed;" + " ckeck_LEN:" + str(check_len))
                 continue
             check_sn = self.serial_.read().hex()
             head_crc8 = self.serial_.read().hex()
@@ -153,17 +153,17 @@ class Imu():
             # 读取并解析IMU数据
             if head_type == TYPE_IMU:
                 data_s = self.serial_.read(int(IMU_LEN, 16))
-                IMU_DATA = struct.unpack('12f ii',data_s[0:56])
-                self.gyroscope["x"]=IMU_DATA[0]
-                self.gyroscope["y"]=IMU_DATA[1]
-                self.gyroscope["z"]=IMU_DATA[2]
-                self.accelerometer["x"]=IMU_DATA[3]
-                self.accelerometer["y"]=IMU_DATA[4]
-                self.accelerometer["z"]=IMU_DATA[5]
-                self.Magnetometer["x"]=IMU_DATA[6]
-                self.Magnetometer["y"]=IMU_DATA[7]
-                self.Magnetometer["z"]=IMU_DATA[8]
-                self.timestamp=IMU_DATA[12]
+                IMU_DATA = struct.unpack('12f ii', data_s[0:56])
+                self.gyroscope["x"] = IMU_DATA[0]
+                self.gyroscope["y"] = IMU_DATA[1]
+                self.gyroscope["z"] = IMU_DATA[2]
+                self.accelerometer["x"] = IMU_DATA[3]
+                self.accelerometer["y"] = IMU_DATA[4]
+                self.accelerometer["z"] = IMU_DATA[5]
+                self.Magnetometer["x"] = IMU_DATA[6]
+                self.Magnetometer["y"] = IMU_DATA[7]
+                self.Magnetometer["z"] = IMU_DATA[8]
+                self.timestamp = IMU_DATA[12]
                 if self.showprint:
                     print(IMU_DATA)
                     print("Gyroscope_X(rad/s): " + str(IMU_DATA[0]))
@@ -182,18 +182,18 @@ class Imu():
             # 读取并解析AHRS数据
             elif head_type == TYPE_AHRS:
                 data_s = self.serial_.read(int(AHRS_LEN, 16))
-                AHRS_DATA = struct.unpack('10f ii',data_s[0:48])
-                self.ahrs["RollSpeed"]=AHRS_DATA[0]
-                self.ahrs["PitchSpeed"]=AHRS_DATA[1]
-                self.ahrs["HeadingSpeed"]=AHRS_DATA[2]
-                self.ahrs["Roll"]=AHRS_DATA[3]
-                self.ahrs["Pitch"]=AHRS_DATA[4]
-                self.ahrs["Heading"]=AHRS_DATA[5]
-                self.ahrs["Q1"]=AHRS_DATA[6]
-                self.ahrs["Q2"]=AHRS_DATA[7]
-                self.ahrs["Q3"]=AHRS_DATA[8]
-                self.ahrs["Q4"]=AHRS_DATA[9]
-                self.timestamp=AHRS_DATA[10]
+                AHRS_DATA = struct.unpack('10f ii', data_s[0:48])
+                self.ahrs["RollSpeed"] = AHRS_DATA[0]
+                self.ahrs["PitchSpeed"] = AHRS_DATA[1]
+                self.ahrs["HeadingSpeed"] = AHRS_DATA[2]
+                self.ahrs["Roll"] = AHRS_DATA[3]
+                self.ahrs["Pitch"] = AHRS_DATA[4]
+                self.ahrs["Heading"] = AHRS_DATA[5]
+                self.ahrs["Q1"] = AHRS_DATA[6]
+                self.ahrs["Q2"] = AHRS_DATA[7]
+                self.ahrs["Q3"] = AHRS_DATA[8]
+                self.ahrs["Q4"] = AHRS_DATA[9]
+                self.timestamp = AHRS_DATA[10]
                 if self.showprint:
                     print(AHRS_DATA)
                     print("RollSpeed(rad/s): " + str(AHRS_DATA[0]))
@@ -210,7 +210,7 @@ class Imu():
             # 读取并解析INSGPS数据
             elif head_type == TYPE_INSGPS:
                 data_s = self.serial_.read(int(INSGPS_LEN, 16))
-                INSGPS_DATA = struct.unpack('16f ii',data_s[0:72])
+                INSGPS_DATA = struct.unpack('16f ii', data_s[0:72])
                 if self.showprint:
                     print(INSGPS_DATA)
                     print("BodyVelocity_X:(m/s)" + str(INSGPS_DATA[0]))
@@ -254,7 +254,7 @@ class Imu():
                 if self.showprint:
                     print(" System_status:" + str(struct.unpack('d', data_s[0:2])[0]))
                     print("Acceleration_Z(m/s^2): " + str(struct.unpack('f', data_s[8:12])[0]))
-                    
+
     def run(self):
         self.UsePlatform()
         tr = threading.Thread(target=self.receive_data)
@@ -267,12 +267,12 @@ class Imu():
                     break
             except(KeyboardInterrupt, SystemExit):
                 break
-                
-            
+
+
 def main():
-    imu=Imu()
+    imu = Imu()
     imu.run()
-    
+
+
 if __name__ == "__main__":
     main()
-    
