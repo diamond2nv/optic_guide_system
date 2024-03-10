@@ -30,6 +30,7 @@ We use the KITTI data that can be found in the `iSAM repo
 from scipy.linalg import block_diag
 import ukfm
 import numpy as np
+from datetime import datetime
 import matplotlib
 ukfm.set_matplotlib_config()
 
@@ -143,6 +144,7 @@ G_const[9:] = np.eye(6)
 
 # measurement iteration number
 k = 1
+start = datetime.now()
 for n in range(1, N):
     # propagation
     dt = t[n]-t[n-1]
@@ -164,12 +166,14 @@ for n in range(1, N):
     ukf_states.append(ukf.state)
     ukf_Ps[n] = ukf.P
     print("\rFiltering... {}%".format(int(100*n/(N-1))), end="")
-
+end= datetime.now()
+duration = end-start
+print(f"\nTime taken to filter: {duration}")
 ################################################################################
 # Results
 # ------------------------------------------------------------------------------
 # We plot the estimated trajectory.
-MODEL.plot_results(ukf_states, ys)
+# MODEL.plot_results(ukf_states, ys)
 
 ################################################################################
 # Results are coherent with the GNSS. As the GNSS is used in the filter, it

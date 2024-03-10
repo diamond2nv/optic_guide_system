@@ -12,6 +12,7 @@ import threading
 import struct
 import time
 import platform
+from datetime import datetime
 # from copy import deepcopy
 # import sys
 # import os
@@ -52,9 +53,7 @@ class Imu:
         self.timeout = params['imu']['timeout']
         self.timeout = 20
         self.showprint = params['imu']['show_print']
-        self.gyroscope = {"x": 0, "y": 0, "z": 0}
-        self.accelerometer = {"x": 0, "y": 0, "z": 0}
-        self.Magnetometer = {"x": 0, "y": 0, "z": 0}
+        self.imu_data = {}
         self.ahrs = {}
         self.timestamp = 0
 
@@ -95,9 +94,9 @@ class Imu:
                 print("error:  unable to open port .")
             exit(1)
 
-    def receive_data(self):
+    def receive_data(self,queue):
         self.open_port()
-        lock=threading.Lock()
+        lock = threading.Lock()
         # 尝试打开串口
 
         # 循环读取数据
@@ -214,16 +213,23 @@ class Imu:
                         print(f"Error reading from serial port: {e}")
                     exit(1)
                 IMU_DATA = struct.unpack('12f ii', data_s[0:56])
-                self.gyroscope["x"] = IMU_DATA[0]
-                self.gyroscope["y"] = IMU_DATA[1]
-                self.gyroscope["z"] = IMU_DATA[2]
-                self.accelerometer["x"] = IMU_DATA[3]
-                self.accelerometer["y"] = IMU_DATA[4]
-                self.accelerometer["z"] = IMU_DATA[5]
-                self.Magnetometer["x"] = IMU_DATA[6]
-                self.Magnetometer["y"] = IMU_DATA[7]
-                self.Magnetometer["z"] = IMU_DATA[8]
-                self.timestamp = IMU_DATA[12]
+                self.imu_data = {
+                    "gyroscope": {
+                        "x": IMU_DATA[0],
+                        "y": IMU_DATA[1],
+                        "z": IMU_DATA[2]
+                    },
+                    "accelerometer": {
+                        "x": IMU_DATA[3],
+                        "y": IMU_DATA[4],
+                        "z": IMU_DATA[5]
+                    },
+                    "Magnetometer": {
+                        "x": IMU_DATA[6],
+                        "y": IMU_DATA[7],
+                        "z": IMU_DATA[8]
+                    }
+                }
                 if self.showprint:
                     print(IMU_DATA)
                     print("Gyroscope_X(rad/s): " + str(IMU_DATA[0]))
@@ -356,6 +362,10 @@ class Imu:
                 if self.showprint:
                     print(" System_status:" + str(struct.unpack('d', data_s[0:2])[0]))
                     print("Acceleration_Z(m/s^2): " + str(struct.unpack('f', data_s[8:12])[0]))
+            times = datetime.now()
+            data = {'time': times, 'IMU': self.imu_data, 'AHRS': self.ahrs}
+            queue.append(data)
+
 
     def run(self):
         self.UsePlatform()

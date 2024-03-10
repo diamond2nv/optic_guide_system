@@ -3,9 +3,12 @@ from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
 from Imu import Imu
+from collections import deque
+from datetime import datetime
 import threading
 
-class OGS():
+
+class OGS:
 
     def __init__(self):
         self.filter = None
@@ -13,6 +16,11 @@ class OGS():
         self.camera = None
         self.needle_marker = None
         self.imu = None
+
+        self.imu_data_queue = deque(maxlen=46847)
+        self.needle_marker_queue = deque(maxlen=100)
+        self.ref_marker_queue = deque(maxlen=1000)
+
         config_loader = Config_loader('optic_guide_system.yaml')
         params = config_loader.get_params()
         self.params = params
@@ -69,41 +77,41 @@ class OGS():
         else:
             pass
 
+    def process_marker(self, marker, queue, params):
+        self.camera.trans_matrix_calc(marker)
+        timestamp = datetime.now()  # 获取当前时间
+        data = {'time': timestamp, 'matrix': marker.matrix}
+        queue.append(data)  # 将时间和矩阵作为一个集合添加到队列中
+        if params['show_print']:
+            print(f"{marker.name}'s transform matrix:")
+            print(marker.matrix)
+
     def calc_c2m(self, params):
         try:
             if params['needle_marker']['shape']:
-                self.camera.trans_matrix_calc(self.needle_marker)
-                if params['show_print']:
-                    print("needle_marker's transform matrix:")
-                    print(self.needle_marker.matrix)
-            else:
-                pass
-
+                self.process_marker(self.needle_marker, self.needle_marker_queue, params)
             if params['ref_marker']['shape']:
-                self.camera.trans_matrix_calc(self.ref_marker)
-                if params['show_print']:
-                    print("ref_marker's transform matrix:")
-                    print(self.ref_marker.matrix)
-            else:
-                pass
+                self.process_marker(self.ref_marker, self.ref_marker_queue, params)
         except:
             if params['show_print']:
                 print("calc_c2m failed")
-        print("calc_c2m finish")
+        # print("calc_c2m finish")
 
-    def read_IMU(self, params):
-        imu_thread = threading.Thread(target=self.imu.run)
-        imu_thread.start()
-
-    def read_IMU_and_filt(self, params):
+    def run_imu_in_loop(self, params):
         while True:
-            self.imu.run()
-            print("imu finish")
-            self.filt(params)
-            print("filt finish")
+            self.imu.receive_data(self.imu_data_queue)
+            # print("imu finish")
 
-    def start(self):
-        thread = threading.Thread(target=self.read_IMU_and_filt, args=(self.params,))
+    def start_imu_thread(self):
+        thread = threading.Thread(target=self.run_imu_in_loop, args=(self.params,))
+        thread.start()
+
+    def run_calc_c2m_in_loop(self):
+        while True:
+            self.calc_c2m(self.params)
+
+    def start_calc_c2m_thread(self):
+        thread = threading.Thread(target=self.run_calc_c2m_in_loop)
         thread.start()
 
     def filt(self, params):
@@ -123,6 +131,8 @@ class OGS():
             pass
 
 
+import sys
+
 if __name__ == "__main__":
     ogs = OGS()
     if ogs.imu is None:
@@ -130,6 +140,20 @@ if __name__ == "__main__":
             ogs.calc_c2m(ogs.params)
             ogs.filt(ogs.params)
     else:
+        ogs.start_imu_thread()
+        ogs.start_calc_c2m_thread()
+        start_time = datetime.now()  # 记录开始时间
+        last_imu_queue_length = 0  # 记录上一次imu队列的长度
         while True:
-            ogs.calc_c2m(ogs.params)
-            ogs.start()
+            if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
+                end_time = datetime.now()  # 记录结束时间
+                duration = end_time - start_time  # 计算用时
+                print(f"Time taken to add 1000 items to imu_data_queue: {duration}")
+                start_time = datetime.now()  # 重置开始时间
+                last_imu_queue_length = len(ogs.imu_data_queue) // 1000
+            if len(ogs.imu_data_queue) == ogs.imu_data_queue.maxlen:
+                end_time = datetime.now()  # 记录结束时间
+                total_duration = end_time - start_time  # 计算总用时
+                print(f"Time taken to fill imu_data_queue: {total_duration}")
+                sys.exit()  # 完全终止程序
+
