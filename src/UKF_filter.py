@@ -392,16 +392,16 @@ class UKF_filter:
 
         alpha = np.array([1e-3, 1e-3, 1e-3, 1e-3, 1e-3])
         # for propagation we need the all state
-        red_idxs = np.arange(15)  # indices corresponding to the full state in P
+        red_idxs = np.arange(16)  # indices corresponding to the full state in P
         # for update we need only the state corresponding to the position
-        up_idxs = np.array([6, 7, 8])
+        up_idxs = np.array([0, 1, 2, 3, 7, 8, 9])
 
         self.Q = block_diag(imu_std[0] ** 2 * np.eye(3), imu_std[1] ** 2 * np.eye(3),
                             imu_std[2] ** 2 * np.eye(3), imu_std[3] ** 2 * np.eye(3))
 
         self.R = GNSS_std ** 2 * np.eye(3)
 
-        P0 = block_diag(0.01 * np.eye(3), 1 * np.eye(3), 1 * np.eye(3),
+        P0 = block_diag(0.01 * np.eye(4), 1 * np.eye(3), 1 * np.eye(3),
                         0.001 * np.eye(3), 0.001 * np.eye(3))
         state0 = self.MODEL.STATE(
             quaternion=np.array([1, 0, 0, 0]),
@@ -410,10 +410,15 @@ class UKF_filter:
             b_gyro=np.zeros(3),
             b_acc=np.zeros(3))
 
+        self.G_const = np.zeros((16, 6))
+        self.G_const[10:] = np.eye(6)
+
         self.ukf = ukfm.JUKF(state0=state0, P0=P0, f=self.MODEL.f, h=self.MODEL.h, Q=self.Q[:6, :6],
                              phi=self.MODEL.phi, alpha=alpha, red_phi=self.MODEL.phi,
                              red_phi_inv=self.MODEL.phi_inv, red_idxs=red_idxs,
                              up_phi=self.MODEL.up_phi, up_idxs=up_idxs)
+
+    import numpy as np
 
     def filt(self, imu_data_queue: deque, marker_data_queue: deque):
         if len(imu_data_queue) == 0:
@@ -427,6 +432,29 @@ class UKF_filter:
                     self.imu_data_last = imu_data_cur
                 else:
                     dt = imu_data_cur['time'] - self.imu_data_last['time']
-                    self.imu_data_last = imu_data_cur
+
+                    # 提取陀螺仪和加速度计的数据，并转换为NumPy数组
+                    gyro = np.array([self.imu_data_last['IMU']['gyroscope']['x'],
+                                     self.imu_data_last['IMU']['gyroscope']['y'],
+                                     self.imu_data_last['IMU']['gyroscope']['z']])
+                    acc = np.array([self.imu_data_last['IMU']['accelerometer']['x'],
+                                    self.imu_data_last['IMU']['accelerometer']['y'],
+                                    self.imu_data_last['IMU']['accelerometer']['z']])
+
                     print(dt)
+                    dt = dt.total_seconds()
+                    omega = self.MODEL.INPUT(gyro=gyro, acc=acc)
+                    self.ukf.state_propagation(omega, dt)
+                    self.ukf.F_num(omega, dt)
+                    # we assert the reduced noise covariance for computing Jacobian.
+                    self.ukf.Q = self.Q[:6, :6]
+                    self.ukf.G_num(omega, dt)
+                    # concatenate Jacobian
+                    self.ukf.G = np.hstack((self.ukf.G, self.G_const * dt))
+                    # we assert the full noise covariance for uncertainty propagation.
+                    self.ukf.Q = self.Q
+                    self.ukf.cov_propagation()
+                    self.queue.append(self.ukf.state)
+                    self.imu_data_last = imu_data_cur
+
                 print(imu_data_cur)

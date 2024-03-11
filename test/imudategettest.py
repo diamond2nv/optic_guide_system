@@ -16,6 +16,7 @@ import platform
 # import sys
 # import os
 # import math
+from datetime import datetime
 
 from serial import EIGHTBITS, PARITY_NONE, STOPBITS_ONE
 
@@ -119,6 +120,8 @@ def receive_data():
 
         # 读取并解析IMU数据
         if head_type == TYPE_IMU:
+            times=datetime.now()
+            print(times)
             data_s = serial_.read(int(IMU_LEN, 16))
             IMU_DATA = struct.unpack('12f ii',data_s[0:56])
             print(IMU_DATA)
