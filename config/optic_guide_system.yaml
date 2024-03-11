@@ -2,7 +2,7 @@ show_print : false
 
 mode: 
   online : true
-  filter : 1 # 0: no filter 1:gh_filter 2:ukf_filter
+  filter : 2 # 0: no filter 1:gh_filter 2:ukf_filter
   imu : true
 camera:
   resolution_x : 1280
@@ -33,6 +33,7 @@ ukf_filter:
     v_xyz_shape : 3
     accu_q_shape : 4
     acc_xyz_shape : 3
+    queue_size : 100
 needle:
   length : 0.012185
   depth_to_needle : 0.001082

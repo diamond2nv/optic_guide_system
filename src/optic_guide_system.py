@@ -2,6 +2,7 @@ from Config_loader import Config_loader
 from Camera import Camera
 from Marker import Marker
 from GH_filter import GH_filter
+from UKF_filter import UKF_filter
 from Imu import Imu
 from collections import deque
 from datetime import datetime
@@ -60,7 +61,7 @@ class OGS:
             if params['mode']['filter'] == 1:
                 self.filter = GH_filter(params)
             elif params['mode']['filter'] == 2:
-                pass
+                self.filter= UKF_filter(params)
             else:
                 if params['show_print']:
                     print("Filter init failed, filter mode is wrong")
@@ -131,7 +132,6 @@ class OGS:
             pass
 
 
-import sys
 
 if __name__ == "__main__":
     ogs = OGS()
@@ -145,15 +145,16 @@ if __name__ == "__main__":
         start_time = datetime.now()  # 记录开始时间
         last_imu_queue_length = 0  # 记录上一次imu队列的长度
         while True:
-            if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
-                end_time = datetime.now()  # 记录结束时间
-                duration = end_time - start_time  # 计算用时
-                print(f"Time taken to add 1000 items to imu_data_queue: {duration}")
-                start_time = datetime.now()  # 重置开始时间
-                last_imu_queue_length = len(ogs.imu_data_queue) // 1000
-            if len(ogs.imu_data_queue) == ogs.imu_data_queue.maxlen:
-                end_time = datetime.now()  # 记录结束时间
-                total_duration = end_time - start_time  # 计算总用时
-                print(f"Time taken to fill imu_data_queue: {total_duration}")
-                sys.exit()  # 完全终止程序
+            ogs.filter.filt(ogs.imu_data_queue,ogs.needle_marker_queue)
+            # if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
+            #     end_time = datetime.now()  # 记录结束时间
+            #     duration = end_time - start_time  # 计算用时
+            #     print(f"Time taken to add 1000 items to imu_data_queue: {duration}")
+            #     start_time = datetime.now()  # 重置开始时间
+            #     last_imu_queue_length = len(ogs.imu_data_queue) // 1000
+            # if len(ogs.imu_data_queue) == ogs.imu_data_queue.maxlen:
+            #     end_time = datetime.now()  # 记录结束时间
+            #     total_duration = end_time - start_time  # 计算总用时
+            #     print(f"Time taken to fill imu_data_queue: {total_duration}")
+            #     sys.exit()  # 完全终止程序
 
