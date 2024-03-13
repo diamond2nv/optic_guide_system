@@ -379,7 +379,7 @@ class UKF_filter:
     def __init__(self, params) -> None:
         self.params = params
         self.MODEL = OGSIMU
-        self.queue_size = 100
+        self.queue_size = 10000
         self.imu_data_last = None
         self.queue = deque(maxlen=self.queue_size)
 
@@ -399,7 +399,7 @@ class UKF_filter:
         self.Q = block_diag(imu_std[0] ** 2 * np.eye(3), imu_std[1] ** 2 * np.eye(3),
                             imu_std[2] ** 2 * np.eye(3), imu_std[3] ** 2 * np.eye(3))
 
-        self.R = GNSS_std ** 2 * np.eye(3)
+        self.R = GNSS_std ** 2 * np.eye(7)
 
         P0 = block_diag(0.01 * np.eye(4), 1 * np.eye(3), 1 * np.eye(3),
                         0.001 * np.eye(3), 0.001 * np.eye(3))
@@ -421,40 +421,61 @@ class UKF_filter:
     import numpy as np
 
     def filt(self, imu_data_queue: deque, marker_data_queue: deque):
-        if len(imu_data_queue) == 0:
-            pass
-        else:
-            imu_data_cur = imu_data_queue.popleft()
-            if len(imu_data_cur['IMU']) == 0:
-                pass
-            else:
-                if self.imu_data_last is None:
-                    self.imu_data_last = imu_data_cur
-                else:
-                    dt = imu_data_cur['time'] - self.imu_data_last['time']
+        if not imu_data_queue:
+            return
 
-                    # 提取陀螺仪和加速度计的数据，并转换为NumPy数组
-                    gyro = np.array([self.imu_data_last['IMU']['gyroscope']['x'],
-                                     self.imu_data_last['IMU']['gyroscope']['y'],
-                                     self.imu_data_last['IMU']['gyroscope']['z']])
-                    acc = np.array([self.imu_data_last['IMU']['accelerometer']['x'],
-                                    self.imu_data_last['IMU']['accelerometer']['y'],
-                                    self.imu_data_last['IMU']['accelerometer']['z']])
+        current_imu_data = imu_data_queue.popleft()
+        if not current_imu_data['IMU']:
+            return
 
-                    print(dt)
-                    dt = dt.total_seconds()
-                    omega = self.MODEL.INPUT(gyro=gyro, acc=acc)
-                    self.ukf.state_propagation(omega, dt)
-                    self.ukf.F_num(omega, dt)
-                    # we assert the reduced noise covariance for computing Jacobian.
-                    self.ukf.Q = self.Q[:6, :6]
-                    self.ukf.G_num(omega, dt)
-                    # concatenate Jacobian
-                    self.ukf.G = np.hstack((self.ukf.G, self.G_const * dt))
-                    # we assert the full noise covariance for uncertainty propagation.
-                    self.ukf.Q = self.Q
-                    self.ukf.cov_propagation()
-                    self.queue.append(self.ukf.state)
-                    self.imu_data_last = imu_data_cur
+        if self.imu_data_last is None:
+            self.imu_data_last = current_imu_data
+            return
 
-                print(imu_data_cur)
+        delta_time = current_imu_data['time'] - self.imu_data_last['time']
+        delta_time = delta_time.total_seconds()
+
+        gyro = np.array([self.imu_data_last['IMU']['gyroscope']['x'],
+                         self.imu_data_last['IMU']['gyroscope']['y'],
+                         self.imu_data_last['IMU']['gyroscope']['z']])
+        acc = np.array([self.imu_data_last['IMU']['accelerometer']['x'],
+                        self.imu_data_last['IMU']['accelerometer']['y'],
+                        self.imu_data_last['IMU']['accelerometer']['z']])
+        omega = self.MODEL.INPUT(gyro=gyro, acc=acc)
+
+        if np.linalg.norm(self.ukf.state.quaternion) == 0:
+            return
+
+        self.ukf.state_propagation(omega, delta_time)
+        self.ukf.F_num(omega, delta_time)
+        self.ukf.Q = self.Q[:6, :6]
+        self.ukf.G_num(omega, delta_time)
+        self.ukf.G = np.hstack((self.ukf.G, self.G_const * delta_time))
+        self.ukf.Q = self.Q
+        self.ukf.cov_propagation()
+
+        queue_data = {
+            "time": current_imu_data['time'],
+            "ukf_state": self.ukf.state
+        }
+        self.queue.append(queue_data)
+        self.imu_data_last = current_imu_data
+
+        if marker_data_queue:
+            marker_data_cur = marker_data_queue.popleft()
+            print("a marker data is poped")
+            if not np.isnan(marker_data_cur['matrix']).all():
+                rot = marker_data_cur['matrix'][0:3, 0:3]
+                p = marker_data_cur['matrix'][0:3, 3]
+                r3 = Rotation.from_matrix(rot)
+                quaternion = r3.as_quat()
+                y = np.hstack((quaternion, p))
+                self.ukf.update(y, self.R)
+                print("queue updated by marker data")
+                self.queue[-1]['ukf_state'] = self.ukf.state
+            # queue_data = {
+            #     "time": current_imu_data['time'],
+            #     "ukf_state": self.ukf.state
+            # }
+            # self.queue.append(queue_data)
+

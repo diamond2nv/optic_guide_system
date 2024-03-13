@@ -146,7 +146,11 @@ if __name__ == "__main__":
         last_imu_queue_length = 0  # 记录上一次imu队列的长度
         while True:
             ogs.filter.filt(ogs.imu_data_queue,ogs.needle_marker_queue)
-            # if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
+            # print("imu:"+str(len(ogs.imu_data_queue)))
+            # print("needle_marker:"+str(len(ogs.needle_marker_queue)))
+            # print("ref_marker:"+str(len(ogs.ref_marker_queue)))
+            print("filter:"+str(len(ogs.filter.queue)))
+                 # if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
             #     end_time = datetime.now()  # 记录结束时间
             #     duration = end_time - start_time  # 计算用时
             #     print(f"Time taken to add 1000 items to imu_data_queue: {duration}")
