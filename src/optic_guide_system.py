@@ -103,13 +103,13 @@ class OGS:
             self.imu.receive_data(self.imu_data_queue)
             # print("imu finish")
 
-    def start_imu_thread(self):
-        thread = threading.Thread(target=self.run_imu_in_loop, args=(self.params,))
-        thread.start()
-
     def run_calc_c2m_in_loop(self):
         while True:
             self.calc_c2m(self.params)
+
+    def start_imu_thread(self):
+        thread = threading.Thread(target=self.run_imu_in_loop, args=(self.params,))
+        thread.start()
 
     def start_calc_c2m_thread(self):
         thread = threading.Thread(target=self.run_calc_c2m_in_loop)
@@ -150,6 +150,12 @@ if __name__ == "__main__":
             # print("needle_marker:"+str(len(ogs.needle_marker_queue)))
             # print("ref_marker:"+str(len(ogs.ref_marker_queue)))
             print("filter:"+str(len(ogs.filter.queue)))
+            if ogs.filter.queue:
+                print("quaternion:" + str(ogs.filter.queue[-1]['ukf_state'].quaternion))
+                print("position:" + str(ogs.filter.queue[-1]['ukf_state'].p))
+                print("velocity:" + str(ogs.filter.queue[-1]['ukf_state'].v))
+                print("gyro_bias:" + str(ogs.filter.queue[-1]['ukf_state'].b_gyro))
+                print("acc_bias:" + str(ogs.filter.queue[-1]['ukf_state'].b_acc))
                  # if len(ogs.imu_data_queue) // 1000 > last_imu_queue_length:
             #     end_time = datetime.now()  # 记录结束时间
             #     duration = end_time - start_time  # 计算用时

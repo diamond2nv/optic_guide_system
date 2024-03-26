@@ -383,12 +383,12 @@ class UKF_filter:
         self.imu_data_last = None
         self.queue = deque(maxlen=self.queue_size)
 
-        imu_std = np.array([0.01,  # gyro (rad/s)
-                            0.05,  # accelerometer (m/s^2)
-                            0.000001,  # gyro bias (rad/s^2)
-                            0.0001])  # accelerometer bias (m/s^3)
+        imu_std = np.array([0.1,  # gyro (rad/s)
+                            0.5,  # accelerometer (m/s^2)
+                            0.1,  # gyro bias (rad/s^2)
+                            0.1])  # accelerometer bias (m/s^3)
 
-        GNSS_std = 0.05
+        GNSS_std = 0.01
 
         alpha = np.array([1e-3, 1e-3, 1e-3, 1e-3, 1e-3])
         # for propagation we need the all state
@@ -440,7 +440,7 @@ class UKF_filter:
                          self.imu_data_last['IMU']['gyroscope']['z']])
         acc = np.array([self.imu_data_last['IMU']['accelerometer']['x'],
                         self.imu_data_last['IMU']['accelerometer']['y'],
-                        self.imu_data_last['IMU']['accelerometer']['z']])
+                        self.imu_data_last['IMU']['accelerometer']['z']+9.80])
         omega = self.MODEL.INPUT(gyro=gyro, acc=acc)
 
         if np.linalg.norm(self.ukf.state.quaternion) == 0:

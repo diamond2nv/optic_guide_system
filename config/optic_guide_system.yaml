@@ -1,5 +1,4 @@
 show_print : false
-
 mode: 
   online : true
   filter : 2 # 0: no filter 1:gh_filter 2:ukf_filter
